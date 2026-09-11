@@ -62,10 +62,14 @@ further tooling.
 
 - The user account must be in the **`dialout`** group to open `/dev/ttyACM0`; otherwise every
   serial operation fails with `Permission denied`. Group changes need a re-login or reboot.
-- No camera is guaranteed present. Verify with `v4l2-ctl --list-devices` and an actual capture
-  attempt (`gst-launch-1.0 nvarguscamerasrc num-buffers=1 ! fakesink`) — `/dev/media0` and a
-  running `nvargus-daemon` exist on this board even with **no sensor attached**, so neither is
-  evidence of a working camera. CSI cameras are not hot-pluggable and need a reboot.
+- **The CSI camera does not work yet** and the cause is physical, not configuration. The
+  overlay, driver, i2c mux and CSI pipeline are all verified good; the sensor NACKs
+  (`-121`) on both ports. See `docs/camera-troubleshooting.md` before touching this —
+  it records what is already ruled out. Do not re-run overlay experiments.
+- `/dev/media0` and a running `nvargus-daemon` exist on this board even with **no sensor
+  attached**, so neither is evidence of a working camera. Verify with an actual capture
+  (`gst-launch-1.0 nvarguscamerasrc num-buffers=1 ! fakesink`). CSI cameras are not
+  hot-pluggable and need a reboot.
 - `dmesg` is not readable as a normal user here; use `/var/log/syslog` and `/var/log/kern.log`.
 
 The user communicates in Korean.
