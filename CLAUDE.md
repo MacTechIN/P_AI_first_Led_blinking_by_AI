@@ -62,10 +62,13 @@ further tooling.
 
 - The user account must be in the **`dialout`** group to open `/dev/ttyACM0`; otherwise every
   serial operation fails with `Permission denied`. Group changes need a re-login or reboot.
-- **The CSI camera does not work yet** and the cause is physical, not configuration. The
-  overlay, driver, i2c mux and CSI pipeline are all verified good; the sensor NACKs
-  (`-121`) on both ports. See `docs/camera-troubleshooting.md` before touching this —
-  it records what is already ruled out. Do not re-run overlay experiments.
+- **The attached CSI camera is a Raspberry Pi Camera Module 3 (IMX708), which JetPack
+  does not support** — no `nv_imx708.ko`, no overlay. It shares i2c address `0x1a` with
+  the IMX477, so the `Camera IMX477 Dual` overlay binds to it and creates `/dev/video0`,
+  but every frame comes back flat (all samples = 4100). **A present `/dev/video0` is not
+  proof of a working camera here — check the pixel data.** Use an IMX219 or IMX477
+  module, a vendor IMX708 driver, or a USB webcam. Details and the identification
+  procedure are in `docs/camera-troubleshooting.md`.
 - `/dev/media0` and a running `nvargus-daemon` exist on this board even with **no sensor
   attached**, so neither is evidence of a working camera. Verify with an actual capture
   (`gst-launch-1.0 nvarguscamerasrc num-buffers=1 ! fakesink`). CSI cameras are not

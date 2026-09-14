@@ -6,6 +6,57 @@ Board: p3767 (Orin Nano module) + p3768 carrier, L4T R36.5.2 (JetPack 6).
 CSI connectors are **22-pin**, confirmed by the jetson-io menu label
 ("Configure Jetson 22pin CSI Connector").
 
+## RESOLVED: the sensor is an IMX708, which JetPack does not support
+
+Root cause, confirmed by reading the sensor's own ID register over i2c while it was
+powered and clocked:
+
+```
+i2ctransfer -y -f 9 w2@0x1a 0x00 0x16 r2   ->   0x07 0x08
+```
+
+`0x0708` is the **IMX708** — the Raspberry Pi **Camera Module 3**. This board's stock
+JetPack ships no driver for it:
+
+| | |
+|---|---|
+| `nv_imx708.ko` | absent |
+| imx708 device tree overlays | none |
+| modules.alias entries | none |
+| Sensors JetPack does ship | ar0234, imx185, imx219, imx274, imx318, imx390, imx477, ov5693, hawk_owl |
+
+IMX708 shares i2c address `0x1a` with the IMX477, so applying the **Camera IMX477 Dual**
+overlay makes the imx477 driver find *something* there. It logs
+`invalid sensor model id: 31`, binds anyway, and creates `/dev/video0` — but the IMX477
+register sequences do not configure an IMX708, so every captured frame is flat: a
+3840x2160 RG10 buffer where all 8.3M samples equal exactly 4100.
+
+**A working `/dev/video0` is therefore not proof of a working camera here.** Check the
+pixel data.
+
+## How the earlier dead end resolved
+
+Everything before this pointed at the cable, wrongly. The reasoning error: a manual
+`i2cdetect` scan runs with the sensor unpowered and its INCK clock stopped, and these
+sensors answer i2c only while clocked. An empty scan therefore cannot distinguish "no
+camera attached" from "camera attached but no matching overlay loaded" — which is
+exactly the situation that held. The cable and both modules were fine all along.
+
+The lesson for next time: identify the sensor *first*, by applying any overlay that
+powers the right i2c address and then reading register 0x0016, rather than inferring
+from scans.
+
+## Options
+
+1. **Use a supported module.** Camera Module v2 (IMX219) or HQ Camera (IMX477) work with
+   the stock overlays and no extra software.
+2. **Third-party IMX708 driver.** Arducam and others publish out-of-tree IMX708 drivers
+   and overlays for Jetson; they install as a kernel module package, not a custom kernel
+   build. Verify the vendor supports L4T R36.5 / JetPack 6 before buying into this.
+3. **USB webcam.** Enumerates as `/dev/video0` with no overlay and no reboot.
+
+## Reference: the state when it was failing
+
 ## Current state: sensor does not respond electrically
 
 ```
