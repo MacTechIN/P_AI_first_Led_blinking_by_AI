@@ -45,6 +45,18 @@ works on a Pi is a Pi cable. Pi 4 and earlier use a **15-pin** CSI connector; on
 Pi 5 / CM4 use 22-pin. A cable proven on a Pi 4 is therefore 15-pin, which is exactly
 the failure mode below.
 
+## Ruled out: the cam0-rst GPIO hog
+
+`bus@0/gpio@2200000/camera-control-output-low` is hogged `output-low` with
+`label = "cam0-rst"`, which looks like the sensor being held in reset. It is not the
+bug: decompiling the overlay (`dtc -I dtb -O dts`) shows NVIDIA defines this hog inside
+the shipped overlay itself, on DT pin 59, while the sensor nodes take their reset from
+DT pins 62 (CAM0) and 160 (CAM1). Different lines, intentional design.
+
+Caveat on the reset experiment above: IMX219 needs its INCK (24 MHz) clock running
+before it will answer i2c at all. Driving the reset line high by hand without enabling
+that clock is therefore not a clean negative — it is weak evidence, not proof.
+
 ## The 22-pin trap
 
 Raspberry Pi Camera v2 / HQ modules ship with a **15-pin** ribbon. It slides into
@@ -54,6 +66,15 @@ of the cable settles this in seconds.
 
 Orientation on the 22-pin connector: silver contacts face **down** (toward the
 PCB), blue stiffener up. Check both ends — some cables are not symmetric.
+
+## Tried: a Raspberry Pi 5 cable (22-pin) — still fails
+
+Fitting a Pi 5 camera cable changed nothing: both ports still NACK with -121. The Pi 5
+end is 22-pin and mates mechanically with this board, so this is now a signal-assignment
+question, not a geometry one. A cable that works on a Pi 5 is wired for the Pi's 22-pin
+pinout, which is not necessarily the pinout this connector expects. Buy a ribbon sold
+specifically for Jetson (Arducam / Waveshare list them as "Jetson Nano/Orin 15-to-22-pin
+camera cable") rather than reusing a Raspberry Pi one.
 
 ## Useful commands
 
