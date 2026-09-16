@@ -14,6 +14,8 @@ host → USB serial → microcontroller, not `Jetson.GPIO`.
 ```
 arduino/led_blink/led_blink.ino   sketch: non-blocking blink + serial command parser
 host/blink.py                     Jetson-side controller (pyserial) that sends commands
+perception/                       L2 perception: frame sources + health checks (µ1.4)
+tests/                            pytest suite; runs without a camera attached
 Makefile                          build / flash / monitor wrappers around arduino-cli
 docs/project_difinition.md        project definition (source of requirements)
 docs/development_plan.md          vertical-slice plan; start here for what to build next
@@ -29,6 +31,7 @@ make build      # compile sketch (no board needed)
 make flash      # compile + upload to /dev/ttyACM0
 make monitor    # raw serial monitor at 115200
 make run        # run the host controller
+make test       # pytest (camera-dependent tests skip themselves)
 
 ./host/blink.py --interval 100   # fast blink
 ./host/blink.py --on             # hold LED on
@@ -66,13 +69,15 @@ further tooling.
 
 - The user account must be in the **`dialout`** group to open `/dev/ttyACM0`; otherwise every
   serial operation fails with `Permission denied`. Group changes need a re-login or reboot.
-- **The attached CSI camera is a Raspberry Pi Camera Module 3 (IMX708), which JetPack
-  does not support** — no `nv_imx708.ko`, no overlay. It shares i2c address `0x1a` with
-  the IMX477, so the `Camera IMX477 Dual` overlay binds to it and creates `/dev/video0`,
-  but every frame comes back flat (all samples = 4100). **A present `/dev/video0` is not
-  proof of a working camera here — check the pixel data.** Use an IMX219 or IMX477
-  module, a vendor IMX708 driver, or a USB webcam. Details and the identification
-  procedure are in `docs/project_0_camtest.md`.
+- **The CSI camera works: an IMX219 under the `Camera IMX219 Dual` overlay.** Read it
+  with `open_source("argus:0")`, never with cv2/V4L2 — `/dev/video0` carries RG10 Bayer
+  that only the Tegra ISP can develop, and this system's cv2 is built without GStreamer.
+  See ADR-0006.
+- An earlier module was a Raspberry Pi Camera Module 3 (IMX708), which JetPack does not
+  support. It shares i2c address `0x1a` with the IMX477, so that overlay bound to it and
+  created a `/dev/video0` whose every sample was 4100. **A present `/dev/video0` is not
+  proof of a working camera — check the pixel data** (`perception.assert_frame_sane`).
+  The identification procedure is in `docs/project_0_camtest.md`.
 - `/dev/media0` and a running `nvargus-daemon` exist on this board even with **no sensor
   attached**, so neither is evidence of a working camera. Verify with an actual capture
   (`gst-launch-1.0 nvarguscamerasrc num-buffers=1 ! fakesink`). CSI cameras are not

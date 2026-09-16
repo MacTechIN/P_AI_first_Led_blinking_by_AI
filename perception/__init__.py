@@ -7,7 +7,7 @@
     with open_source("synthetic") as src:   # 카메라 없이 개발
         obs = src.read()
 
-    with open_source("v4l2:0") as src:      # 실물 웹캠
+    with open_source("argus:0") as src:     # Jetson CSI 카메라
         obs = src.read()
 """
 
@@ -32,12 +32,21 @@ from .sources import (
 )
 from .types import Observation
 
+
+def __getattr__(name: str):  # ArgusSource 는 gi 를 요구하므로 지연 로드
+    if name == "ArgusSource":
+        from .argus import ArgusSource
+
+        return ArgusSource
+    raise AttributeError(name)
+
 __all__ = [
     "Observation",
     "FrameSource",
     "SyntheticSource",
     "ImageFileSource",
     "V4L2Source",
+    "ArgusSource",
     "open_source",
     "solid",
     "patch",

@@ -49,9 +49,35 @@ I/O·파일시스템 오류 0건. 자원 여유 충분.
 
 ---
 
-## 2. 카메라 — ❌ 미지원 하드웨어
+## 2. 카메라 — ✅ 해결 (IMX219 로 교체)
 
-### 2.1 결론
+### 2.0 최종 상태 (2026-09-16)
+
+IMX219 모듈로 교체하고 `Camera IMX219 Dual` 오버레이를 적용해 **정상 동작**한다.
+
+```
+imx219 9-0010: tegracam sensor driver:imx219_v2.0.6
+tegra-capture-vi: subdev imx219 9-0010 bound      ← 오류 없이 바인딩
+```
+
+실촬영 검증 (워밍업 30프레임 후, 1280x720):
+
+| | mean | std | 건전성 검사 |
+|---|---|---|---|
+| 워밍업 없이 첫 프레임 | 22.7 | 9.7 | 통과 (어둡지만 평탄하지 않음) |
+| 워밍업 후 | 92.9 | 71.5 | 통과 |
+
+**읽는 경로는 Argus 다. cv2/V4L2 가 아니다** — ADR-0006 참조.
+
+```python
+from perception import open_source
+with open_source("argus:0", width=1280, height=720) as src:
+    obs = src.read()
+```
+
+아래는 여기에 도달하기까지의 기록이며, IMX708 이 연결됐던 시점의 내용이다.
+
+### 2.1 (당시) 결론
 
 연결된 모듈은 **IMX708 (Raspberry Pi Camera Module 3)** 이며,
 **JetPack이 이 센서를 지원하지 않는다.**

@@ -359,11 +359,16 @@ def open_source(spec: str = "synthetic", **kwargs: Any) -> FrameSource:
     """문자열로 소스를 고른다. 설정 파일·CLI 에서 쓴다.
 
         open_source("synthetic")
-        open_source("v4l2:0")
+        open_source("argus:0")      # Jetson CSI (IMX219 등)
+        open_source("v4l2:0")       # USB 웹캠
         open_source("files:/path/to/golden")
     """
     if spec == "synthetic" or spec.startswith("synthetic:"):
         return SyntheticSource(**kwargs)
+    if spec.startswith("argus:"):
+        from .argus import ArgusSource
+
+        return ArgusSource(int(spec.split(":", 1)[1]), **kwargs)
     if spec.startswith("v4l2:"):
         dev = spec.split(":", 1)[1]
         return V4L2Source(int(dev) if dev.isdigit() else dev, **kwargs)
