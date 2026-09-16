@@ -19,3 +19,11 @@ run:
 
 clean:
 	rm -rf $(SKETCH)/build
+
+# --- Python (인지 계층 외) ---
+.PHONY: test lint
+test:
+	python3 -m pytest tests/ -q
+
+lint:
+	python3 -m compileall -q perception host
