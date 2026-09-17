@@ -84,6 +84,29 @@ without it, sensor noise alone produced 18 commands in 20 still frames (ADR-0007
 Blink timing lives on the Arduino (`millis()`-based, rollover-safe) so it is unaffected by
 host scheduling. `--pattern` is the deliberate exception: it is timed host-side.
 
+## Local VLM
+
+`llama.cpp` is built from source with CUDA (`~/llama.cpp`, sm_87) and the models live in
+`~/models`. Qwen2.5-VL-7B Q4_K_M runs, but with almost no headroom — see
+`docs/tech/notes/vlm-on-orin-nano.md` before changing any flag:
+
+```bash
+~/llama.cpp/build/bin/llama-server -m ~/models/Qwen2.5-VL-7B-Instruct-Q4_K_M.gguf \
+  --mmproj ~/models/mmproj-Qwen2.5-VL-7B-Instruct-Q8_0.gguf \
+  -ngl 99 -c 2048 -b 2048 -ub 512 --parallel 1 -ctk q8_0 -ctv q8_0 --port 8080
+```
+
+- **The GUI must stay off** (`multi-user.target`). With GNOME running there is 2.3 GiB
+  free instead of 6.4 GiB, and nothing fits.
+- `--parallel 1` matters: the default allocates four KV slots and the server then dies on
+  the first request.
+- Images must be resized (768x432 works). A 1280x720 frame overflows the batch and aborts
+  on `GGML_ASSERT(n_tokens_all <= cparams.n_batch)`.
+- **`/health` returning ok does not mean it works.** The server reports `model loaded`
+  even when the vision buffer failed to allocate. Send a real request to find out.
+- Inference is 2.2-2.9 s, against a 34.6 ms control loop, so the VLM never runs inside
+  that loop (ADR-0008).
+
 ## Toolchain
 
 `arduino-cli` (1.5.x) and `gh` are installed **per-user** in `~/.local/bin` — not via apt,
