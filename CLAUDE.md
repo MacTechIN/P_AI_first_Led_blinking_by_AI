@@ -12,11 +12,12 @@ host → USB serial → microcontroller, not `Jetson.GPIO`.
 ## Layout
 
 ```
-arduino/led_blink/led_blink.ino   sketch: non-blocking blink + serial command parser
+arduino/rgb_led/rgb_led.ino       sketch: RGB LED driver + serial command parser
 host/blink.py                     Jetson-side controller (pyserial) that sends commands
 perception/                       L2 perception: frame sources + health checks (µ1.4)
 control/                          L1/L3: features, rule policy, actuators, control loop (VS-2)
 host/vs2_demo.py                  VS-2 end-to-end demo (camera colour -> LED)
+host/verify_rgb.py                closed-loop colour check: commanded vs photographed
 tests/                            pytest suite; runs without a camera attached
 Makefile                          build / flash / monitor wrappers around arduino-cli
 docs/project_difinition.md        project definition (source of requirements)
@@ -51,9 +52,19 @@ Override the port with `PORT=/dev/ttyACM1 make flash`.
 `READY led_blink` after reset. Commands: `BLINK`, `ON`, `OFF`, `INT <ms>` (10-5000),
 `LEVEL <n>` (0-255, PWM brightness), `STATE`, `PING` → `PONG`.
 
-The external LED is on **pin 9** (PWM-capable); pin 13 mirrors on/off. Range limits are
-enforced in firmware as well as in `control/commands.py` — the host check is a
-convenience, firmware is the boundary a model cannot cross (ADR-0003).
+RGB LED on **B=9, R=10, G=11** (all PWM), plus `RGB <r> <g> <b>`. Pin 13 mirrors on/off.
+Range limits are enforced in firmware as well as in `control/commands.py` — the host check
+is a convenience, firmware is the boundary a model cannot cross (ADR-0003).
+
+Two hardware quirks are compensated in firmware, both established by photographing the
+LED (see `docs/tech/notes/rgb-led-calibration.md`):
+
+- **Common anode**: a LOW pin lights the channel, so duties are inverted on the way out.
+  Before this, `RGB 255 0 0` glowed cyan and `RGB 255 255 255` went dark.
+- **One shared current-limiting resistor**: the dies compete for a fixed current and the
+  lowest-forward-voltage one wins (red beats green beats blue), so `RGB 255 255 0` came
+  out pure red. `GAIN_R/G/B` hold the stronger dies back. The real fix is a resistor per
+  channel; with that wiring, set all three gains to 255.
 
 Two constraints worth knowing before debugging serial issues:
 

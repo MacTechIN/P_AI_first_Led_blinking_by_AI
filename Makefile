@@ -1,7 +1,7 @@
 # Arduino Uno LED blinker. Requires arduino-cli on PATH (~/.local/bin).
 FQBN  ?= arduino:avr:uno
 PORT  ?= /dev/ttyACM0
-SKETCH = arduino/led_blink
+SKETCH = arduino/rgb_led
 
 .PHONY: build flash monitor run clean
 

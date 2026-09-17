@@ -47,6 +47,10 @@ class ArgusSource(FrameSource):
         source_id: str | None = None,
         check_health: bool = True,
         timeout_s: float = 5.0,
+        wbmode: int | None = None,
+        awblock: bool = False,
+        aelock: bool = False,
+        exposure_ns: tuple[int, int] | None = None,
     ) -> None:
         super().__init__(
             source_id=source_id or f"argus:{sensor_id}", check_health=check_health
@@ -57,12 +61,28 @@ class ArgusSource(FrameSource):
         self.framerate = framerate
         self.warmup = warmup
         self.timeout_s = timeout_s
+        self.wbmode = wbmode
+        self.awblock = awblock
+        self.aelock = aelock
+        self.exposure_ns = exposure_ns
         self._pipeline: Any = None
         self._sink: Any = None
 
     def pipeline_description(self) -> str:
+        # 측정에는 자동 보정을 끄는 편이 낫다. AWB/AE 가 프레임마다 색과 노출을
+        # 바꾸면 "LED 색이 변한 것" 과 "카메라가 해석을 바꾼 것" 을 구별할 수 없다.
+        opts = ""
+        if self.wbmode is not None:
+            opts += f" wbmode={self.wbmode}"
+        if self.awblock:
+            opts += " awblock=true"
+        if self.aelock:
+            opts += " aelock=true"
+        if self.exposure_ns:
+            lo, hi = self.exposure_ns
+            opts += f' exposuretimerange="{lo} {hi}"'
         return (
-            f"nvarguscamerasrc sensor-id={self.sensor_id} ! "
+            f"nvarguscamerasrc sensor-id={self.sensor_id}{opts} ! "
             f"video/x-raw(memory:NVMM),width={self.width},height={self.height},"
             f"framerate={self.framerate}/1 ! "
             "nvvidconv ! video/x-raw,format=BGRx ! "
@@ -131,4 +151,7 @@ class ArgusSource(FrameSource):
             "height": self.height,
             "framerate": self.framerate,
             "warmup": self.warmup,
+            "wbmode": self.wbmode,
+            "awblock": self.awblock,
+            "aelock": self.aelock,
         }
