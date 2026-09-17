@@ -15,6 +15,8 @@ host → USB serial → microcontroller, not `Jetson.GPIO`.
 arduino/led_blink/led_blink.ino   sketch: non-blocking blink + serial command parser
 host/blink.py                     Jetson-side controller (pyserial) that sends commands
 perception/                       L2 perception: frame sources + health checks (µ1.4)
+control/                          L1/L3: features, rule policy, actuators, control loop (VS-2)
+host/vs2_demo.py                  VS-2 end-to-end demo (camera colour -> LED)
 tests/                            pytest suite; runs without a camera attached
 Makefile                          build / flash / monitor wrappers around arduino-cli
 docs/project_difinition.md        project definition (source of requirements)
@@ -37,6 +39,8 @@ make test       # pytest (camera-dependent tests skip themselves)
 ./host/blink.py --on             # hold LED on
 ./host/blink.py --pattern sos    # host-timed pattern
 ./host/blink.py --repl           # interactive prompt
+./host/vs2_demo.py --steps 30    # VS-2 loop on real hardware
+./host/vs2_demo.py --source synthetic --dry-run   # no hardware at all
 ```
 
 Override the port with `PORT=/dev/ttyACM1 make flash`.
@@ -44,8 +48,12 @@ Override the port with `PORT=/dev/ttyACM1 make flash`.
 ## Serial protocol
 
 115200 baud, newline-terminated ASCII, one reply line per command. The sketch prints
-`READY led_blink` after reset. Commands: `BLINK`, `ON`, `OFF`, `INT <ms>` (>= 10),
-`STATE`, `PING` → `PONG`.
+`READY led_blink` after reset. Commands: `BLINK`, `ON`, `OFF`, `INT <ms>` (10-5000),
+`LEVEL <n>` (0-255, PWM brightness), `STATE`, `PING` → `PONG`.
+
+The external LED is on **pin 9** (PWM-capable); pin 13 mirrors on/off. Range limits are
+enforced in firmware as well as in `control/commands.py` — the host check is a
+convenience, firmware is the boundary a model cannot cross (ADR-0003).
 
 Two constraints worth knowing before debugging serial issues:
 
@@ -54,6 +62,10 @@ Two constraints worth knowing before debugging serial issues:
   sleeping blindly — keep that behavior in any new host code.
 - **Only one process may hold the port.** `make monitor` and `blink.py` cannot run at once,
   and an open monitor will make `make flash` fail.
+
+Re-sending an identical `BLINK` resets the blink phase and looks like a stutter, so
+`ControlLoop` actuates only when the command changes. That is a correctness requirement,
+not an optimisation.
 
 Blink timing lives on the Arduino (`millis()`-based, rollover-safe) so it is unaffected by
 host scheduling. `--pattern` is the deliberate exception: it is timed host-side.
