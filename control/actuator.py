@@ -68,6 +68,9 @@ class SerialLedActuator(Actuator):
             return cmd.to_wire()
 
         lines: list[str] = []
+        if cmd.rgb != self._last.rgb:
+            r, g, b = cmd.rgb
+            lines.append(f"RGB {r} {g} {b}")
         if cmd.level != self._last.level:
             lines.append(f"LEVEL {cmd.level}")
         if cmd.mode == "blink":

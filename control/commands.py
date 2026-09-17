@@ -30,12 +30,18 @@ class LedCommand:
     """LED 에 보낼 의도. 타이밍 자체가 아니라 **의도**다 (ADR-0001)."""
 
     mode: Mode = "off"
+    rgb: tuple[int, int, int] = (255, 255, 255)
     interval_ms: int = 500
     level: int = 255
 
     def __post_init__(self) -> None:
         if self.mode not in ("off", "on", "blink"):
             raise CommandError(f"알 수 없는 mode: {self.mode!r}")
+        if len(self.rgb) != 3:
+            raise CommandError(f"rgb 는 3개 값이어야 한다: {self.rgb!r}")
+        for name, v in zip("rgb", self.rgb):
+            if not MIN_LEVEL <= v <= MAX_LEVEL:
+                raise CommandError(f"{name} 는 0~255 여야 한다: {v}")
         if not MIN_INTERVAL_MS <= self.interval_ms <= MAX_INTERVAL_MS:
             raise CommandError(
                 f"interval_ms 는 {MIN_INTERVAL_MS}~{MAX_INTERVAL_MS} 여야 한다: "
@@ -48,7 +54,8 @@ class LedCommand:
 
     def to_wire(self) -> list[str]:
         """시리얼 프로토콜 문장들. 순서가 중요하다 — 모드 전환 전에 파라미터를 세운다."""
-        lines = [f"LEVEL {self.level}"]
+        r, g, b = self.rgb
+        lines = [f"RGB {r} {g} {b}", f"LEVEL {self.level}"]
         if self.mode == "blink":
             lines += [f"INT {self.interval_ms}", "BLINK"]
         else:
@@ -56,6 +63,9 @@ class LedCommand:
         return lines
 
     def describe(self) -> str:
+        if self.mode == "off":
+            return "off"
+        colour = "#%02x%02x%02x" % self.rgb
         if self.mode == "blink":
-            return f"blink {self.interval_ms}ms @{self.level}"
-        return f"{self.mode} @{self.level}" if self.mode == "on" else "off"
+            return f"blink {self.interval_ms}ms {colour} @{self.level}"
+        return f"on {colour} @{self.level}"

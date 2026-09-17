@@ -62,16 +62,33 @@ class SceneFeatures:
     centroid_x: float | None
     """지배 색 영역의 가로 중심 0-1 (0=왼쪽). 방향 판단용. 없으면 None."""
 
+    rgb: tuple[int, int, int] | None = None
+    """LED 로 재현할 색. 관측된 원색이 아니라 **색조를 완전 채도로 편 값**이다.
+
+    물체가 어둡거나 바래 보여도 LED 는 그 색조를 선명하게 보여야 한다. 관측
+    RGB 를 그대로 쓰면 어두운 빨강이 거의 검게 나와 아무것도 안 보인다.
+    """
+
     def describe(self) -> str:
         if self.color is None:
             return f"물체 없음 (밝기 {self.brightness:.0f})"
         side = "좌" if (self.centroid_x or 0.5) < 0.4 else (
             "우" if (self.centroid_x or 0.5) > 0.6 else "중앙"
         )
+        swatch = "#%02x%02x%02x" % self.rgb if self.rgb else "-"
         return (
-            f"{self.color} {self.coverage:.0%} {side} "
+            f"{self.color} {swatch} {self.coverage:.0%} {side} "
             f"(채도 {self.saturation:.0f}, 밝기 {self.brightness:.0f})"
         )
+
+
+def hue_to_rgb(hue: float) -> tuple[int, int, int]:
+    """색조를 완전 채도·완전 명도의 RGB 로 편다. LED 표시용."""
+    import cv2
+
+    px = np.uint8([[[int(hue) % 180, 255, 255]]])
+    r, g, b = cv2.cvtColor(px, cv2.COLOR_HSV2RGB)[0, 0]
+    return (int(r), int(g), int(b))
 
 
 def classify_hue(hue: float) -> str:
@@ -131,4 +148,5 @@ def extract(
         saturation=float(sat[obj].mean()),
         brightness=brightness,
         centroid_x=centroid_x,
+        rgb=hue_to_rgb(dominant),
     )

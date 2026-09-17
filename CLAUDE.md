@@ -15,7 +15,7 @@ host → USB serial → microcontroller, not `Jetson.GPIO`.
 arduino/rgb_led/rgb_led.ino       sketch: RGB LED driver + serial command parser
 host/blink.py                     Jetson-side controller (pyserial) that sends commands
 perception/                       L2 perception: frame sources + health checks (µ1.4)
-control/                          L1/L3: features, rule policy, actuators, control loop (VS-2)
+control/                          L1/L3: features, policies, actuators, control loop (VS-2)
 host/vs2_demo.py                  VS-2 end-to-end demo (camera colour -> LED)
 host/verify_rgb.py                closed-loop colour check: commanded vs photographed
 tests/                            pytest suite; runs without a camera attached
@@ -40,7 +40,9 @@ make test       # pytest (camera-dependent tests skip themselves)
 ./host/blink.py --on             # hold LED on
 ./host/blink.py --pattern sos    # host-timed pattern
 ./host/blink.py --repl           # interactive prompt
-./host/vs2_demo.py --steps 30    # VS-2 loop on real hardware
+./host/vs2_demo.py --steps 30 --lock      # VS-2 loop on real hardware
+./host/vs2_demo.py --policy rule          # blink-rate encoding instead of mirroring
+./host/verify_rgb.py --level 40 --lock    # commanded vs photographed colour
 ./host/vs2_demo.py --source synthetic --dry-run   # no hardware at all
 ```
 
@@ -76,7 +78,8 @@ Two constraints worth knowing before debugging serial issues:
 
 Re-sending an identical `BLINK` resets the blink phase and looks like a stutter, so
 `ControlLoop` actuates only when the command changes. That is a correctness requirement,
-not an optimisation.
+not an optimisation. `MirrorColorPolicy` additionally holds its output with hysteresis —
+without it, sensor noise alone produced 18 commands in 20 still frames (ADR-0007).
 
 Blink timing lives on the Arduino (`millis()`-based, rollover-safe) so it is unaffected by
 host scheduling. `--pattern` is the deliberate exception: it is timed host-side.

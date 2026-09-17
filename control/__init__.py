@@ -2,9 +2,9 @@
 
 from .actuator import Actuator, NullActuator, SerialLedActuator
 from .commands import CommandError, LedCommand
-from .features import SceneFeatures, classify_hue, extract
+from .features import SceneFeatures, classify_hue, extract, hue_to_rgb
 from .loop import ControlLoop, StepResult, summarize
-from .policy import COLOR_RULES, ColorRulePolicy, Policy
+from .policy import COLOR_RULES, ColorRulePolicy, MirrorColorPolicy, Policy
 
 __all__ = [
     "LedCommand",
@@ -12,8 +12,10 @@ __all__ = [
     "SceneFeatures",
     "extract",
     "classify_hue",
+    "hue_to_rgb",
     "Policy",
     "ColorRulePolicy",
+    "MirrorColorPolicy",
     "COLOR_RULES",
     "Actuator",
     "NullActuator",

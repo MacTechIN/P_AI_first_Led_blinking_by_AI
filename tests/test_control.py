@@ -39,10 +39,10 @@ def test_command_rejects_unknown_mode():
 
 
 def test_wire_sets_parameters_before_mode():
-    """LEVEL/INT 이 BLINK 보다 먼저 가야 첫 점멸부터 올바른 값으로 켜진다."""
-    wire = LedCommand("blink", interval_ms=250, level=100).to_wire()
-    assert wire == ["LEVEL 100", "INT 250", "BLINK"]
-    assert wire.index("LEVEL 100") < wire.index("BLINK")
+    """RGB/LEVEL/INT 이 BLINK 보다 먼저 가야 첫 점멸부터 올바른 색·밝기로 켜진다."""
+    wire = LedCommand("blink", rgb=(1, 2, 3), interval_ms=250, level=100).to_wire()
+    assert wire == ["RGB 1 2 3", "LEVEL 100", "INT 250", "BLINK"]
+    assert wire.index("BLINK") == len(wire) - 1
 
 
 # --- 특징 추출 (µ2.1) ---
@@ -175,3 +175,125 @@ def test_summarize_reports_latency_budget():
     s = summarize(loop.run(steps=5))
     assert {"capture_ms", "extract_ms", "decide_ms", "total_ms", "p95_ms", "fps"} <= set(s)
     assert s["fps"] > 0
+
+
+# --- RGB 확장: 정의서의 "동일 색 표시" ---
+
+
+def test_command_rejects_bad_rgb():
+    from control import LedCommand as C
+
+    with pytest.raises(CommandError, match="0~255"):
+        C("on", rgb=(256, 0, 0))
+    with pytest.raises(CommandError, match="0~255"):
+        C("on", rgb=(0, -1, 0))
+    with pytest.raises(CommandError, match="3개"):
+        C("on", rgb=(0, 0))
+
+
+def test_wire_sets_colour_before_mode():
+    wire = LedCommand("on", rgb=(10, 20, 30), level=200).to_wire()
+    assert wire == ["RGB 10 20 30", "LEVEL 200", "ON"]
+    assert wire.index("RGB 10 20 30") < wire.index("ON")
+
+
+def test_hue_to_rgb_is_fully_saturated():
+    """어두운 물체를 봐도 LED 는 선명한 색을 내야 한다."""
+    from control import hue_to_rgb
+
+    for hue, channel in [(0, 0), (60, 1), (120, 2)]:
+        rgb = hue_to_rgb(hue)
+        assert rgb[channel] == 255
+        assert min(rgb) == 0
+
+
+def test_features_carry_display_rgb():
+    img = SyntheticSource(patch(fg=(180, 30, 30), bg=(20, 20, 20))).open().read().image
+    f = extract(img)
+    assert f.rgb is not None
+    assert f.rgb[0] > f.rgb[1] and f.rgb[0] > f.rgb[2], "빨강 물체면 빨강이 우세"
+
+
+def test_mirror_policy_shows_the_colour_it_sees():
+    from control import MirrorColorPolicy
+
+    p = MirrorColorPolicy(alert=None)
+    for rgb_in, channel in [((255, 0, 0), 0), ((0, 255, 0), 1), ((0, 0, 255), 2)]:
+        img = SyntheticSource(patch(fg=rgb_in, bg=(20, 20, 20))).open().read().image
+        cmd = p.decide(extract(img))
+        assert cmd.mode == "on"
+        assert cmd.rgb[channel] == max(cmd.rgb), f"{rgb_in} 를 보면 같은 채널이 우세해야"
+
+
+def test_mirror_policy_blinks_only_the_alert_colour():
+    from control import MirrorColorPolicy
+
+    p = MirrorColorPolicy(alert="red")
+    red = p.decide(SceneFeatures("red", 5, 0.4, 200, 120, 0.5, (255, 0, 0)))
+    green = p.decide(SceneFeatures("green", 60, 0.4, 200, 120, 0.5, (0, 255, 0)))
+    assert red.mode == "blink" and green.mode == "on"
+
+
+def test_mirror_policy_turns_off_with_nothing_seen():
+    from control import MirrorColorPolicy
+
+    assert MirrorColorPolicy().decide(
+        SceneFeatures(None, None, 0.0, 0.0, 100, None, None)
+    ).mode == "off"
+
+
+def test_mirror_policy_never_violates_the_contract():
+    from control import MirrorColorPolicy
+
+    p = MirrorColorPolicy()
+    for hue in range(0, 180, 7):
+        from control import hue_to_rgb
+
+        cmd = p.decide(
+            SceneFeatures("red", hue, 0.3, 200, 120, 0.5, hue_to_rgb(hue))
+        )
+        assert all(0 <= c <= 255 for c in cmd.rgb)
+        assert 10 <= cmd.interval_ms <= 5000 and 0 <= cmd.level <= 255
+
+
+def test_actuator_resends_colour_only_when_it_changes():
+    from control.actuator import SerialLedActuator
+
+    a = SerialLedActuator.__new__(SerialLedActuator)   # 시리얼 없이 _diff 만 검증
+    a._last = LedCommand("on", rgb=(255, 0, 0), level=100)
+    assert a._diff(LedCommand("on", rgb=(255, 0, 0), level=100)) == []
+    assert a._diff(LedCommand("on", rgb=(0, 255, 0), level=100)) == ["RGB 0 255 0"]
+
+
+def test_mirror_policy_holds_output_against_jitter():
+    """노이즈로 색조가 흔들려도 명령이 바뀌지 않아야 한다."""
+    from control import MirrorColorPolicy, hue_to_rgb
+
+    p = MirrorColorPolicy(alert=None, hue_step=10)
+    first = p.decide(SceneFeatures("green", 60, 0.4, 200, 120, 0.5, hue_to_rgb(60)))
+    for jitter in (61, 59, 62, 58, 63):
+        again = p.decide(
+            SceneFeatures("green", jitter, 0.4, 200, 120, 0.5, hue_to_rgb(jitter))
+        )
+        assert again == first, f"색조 {jitter} 는 이력 안이라 같은 명령이어야"
+
+
+def test_mirror_policy_follows_a_real_colour_change():
+    """이력이 진짜 변화까지 막으면 안 된다."""
+    from control import MirrorColorPolicy, hue_to_rgb
+
+    p = MirrorColorPolicy(alert=None, hue_step=10)
+    green = p.decide(SceneFeatures("green", 60, 0.4, 200, 120, 0.5, hue_to_rgb(60)))
+    blue = p.decide(SceneFeatures("blue", 120, 0.4, 200, 120, 0.5, hue_to_rgb(120)))
+    assert green.rgb != blue.rgb
+
+
+def test_mirror_policy_resets_hold_when_object_leaves():
+    """물체가 사라졌다 다시 나타나면 새 색을 따라야 한다."""
+    from control import MirrorColorPolicy, hue_to_rgb
+
+    p = MirrorColorPolicy(alert=None)
+    p.decide(SceneFeatures("green", 60, 0.4, 200, 120, 0.5, hue_to_rgb(60)))
+    p.decide(SceneFeatures(None, None, 0.0, 0.0, 100, None, None))
+    after = p.decide(SceneFeatures("blue", 118, 0.4, 200, 120, 0.5, hue_to_rgb(118)))
+    assert after.rgb == hue_to_rgb(118)
