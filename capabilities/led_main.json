@@ -1,0 +1,37 @@
+{
+  "id": "led_main",
+  "kind": "rgb_led",
+  "description": "RGB LED on the Arduino. Use it to show what the camera sees.",
+  "transport": {"type": "serial", "port": "/dev/ttyACM0", "baud": 115200},
+  "commands": {
+    "on": {
+      "description": "Light the LED in a colour and hold it",
+      "wire": "RGB {r} {g} {b}\nLEVEL {level}\nON",
+      "args": {
+        "r": {"type": "int", "min": 0, "max": 255, "description": "red channel"},
+        "g": {"type": "int", "min": 0, "max": 255, "description": "green channel"},
+        "b": {"type": "int", "min": 0, "max": 255, "description": "blue channel"},
+        "level": {"type": "int", "min": 0, "max": 255, "default": 200,
+                  "description": "overall brightness"}
+      }
+    },
+    "blink": {
+      "description": "Blink the LED in a colour; use for warnings",
+      "wire": "RGB {r} {g} {b}\nLEVEL {level}\nINT {interval_ms}\nBLINK",
+      "args": {
+        "r": {"type": "int", "min": 0, "max": 255, "description": "red channel"},
+        "g": {"type": "int", "min": 0, "max": 255, "description": "green channel"},
+        "b": {"type": "int", "min": 0, "max": 255, "description": "blue channel"},
+        "interval_ms": {"type": "int", "min": 10, "max": 5000, "default": 200,
+                        "description": "half-period; smaller is more urgent"},
+        "level": {"type": "int", "min": 0, "max": 255, "default": 200,
+                  "description": "overall brightness"}
+      }
+    },
+    "off": {
+      "description": "Turn the LED off",
+      "wire": "OFF",
+      "args": {}
+    }
+  }
+}

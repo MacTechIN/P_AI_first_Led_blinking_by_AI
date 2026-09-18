@@ -5,7 +5,17 @@ from .commands import CommandError, LedCommand
 from .features import SceneFeatures, classify_hue, extract, hue_to_rgb
 from .loop import ControlLoop, StepResult, summarize
 from .policy import COLOR_RULES, ColorRulePolicy, MirrorColorPolicy, Policy
+from .capability import (
+    ArgSpec,
+    Call,
+    CommandSpec,
+    ContractActuator,
+    ContractError,
+    Device,
+    Registry,
+)
 from .vlm import (
+    ContractVlmClient,
     COLOURS,
     RESPONSE_SCHEMA,
     SYSTEM_PROMPT,
@@ -43,4 +53,12 @@ __all__ = [
     "RESPONSE_SCHEMA",
     "SYSTEM_PROMPT",
     "COLOURS",
+    "Registry",
+    "Device",
+    "CommandSpec",
+    "ArgSpec",
+    "Call",
+    "ContractError",
+    "ContractActuator",
+    "ContractVlmClient",
 ]

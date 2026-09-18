@@ -335,3 +335,73 @@ class VlmPolicy(Policy):
             self._last = record
             if cmd is not None:
                 self._command = cmd
+
+
+# --------------------------------------------------------------------------
+# VS-4 — 역량 계약 위에서 판단하기
+# --------------------------------------------------------------------------
+
+
+CONTRACT_PROMPT = (
+    "You control physical devices by looking at a camera image.\n"
+    "Available devices and commands:\n{devices}\n\n"
+    "Reply with one JSON object choosing a device and command, with arguments "
+    "inside the declared ranges. Mirror the colour of any clearly coloured "
+    "object you see. If you cannot judge the scene, choose the command that "
+    "leaves things unchanged rather than guessing."
+)
+
+
+class ContractVlmClient(VlmClient):
+    """역량 계약에서 파생된 스키마로 모델에게 묻는다.
+
+    프롬프트의 장치 목록도, 강제할 JSON 스키마도, 응답 검증도 **모두 하나의
+    선언에서 나온다.** 장치를 추가해도 이 클래스는 바뀌지 않는다 — 그것이 VS-4 다.
+    """
+
+    def __init__(self, registry: Any, endpoint: str = DEFAULT_ENDPOINT, **kw: Any) -> None:
+        super().__init__(endpoint, prompt=CONTRACT_PROMPT.format(
+            devices=registry.describe()), **kw)
+        self.registry = registry
+
+    def ask(self, image: Any) -> tuple[Any, float, str]:
+        body = json.dumps({
+            "model": "local",
+            "max_tokens": self.max_tokens,
+            "temperature": self.temperature,
+            "response_format": {
+                "type": "json_schema",
+                "json_schema": {"name": "device_call",
+                                "schema": self.registry.tool_schema(),
+                                "strict": True},
+            },
+            "messages": [{"role": "user", "content": [
+                {"type": "text", "text": self.prompt},
+                {"type": "image_url", "image_url": {
+                    "url": f"data:image/jpeg;base64,{encode_jpeg(image)}"}},
+            ]}],
+        }).encode()
+
+        req = urllib.request.Request(
+            self.endpoint, data=body, headers={"Content-Type": "application/json"}
+        )
+        t0 = time.perf_counter()
+        try:
+            payload = self._opener(req, self.timeout_s)
+        except (urllib.error.URLError, OSError, TimeoutError) as e:
+            raise VlmError(f"VLM 호출 실패: {type(e).__name__}: {e}") from e
+        latency = (time.perf_counter() - t0) * 1000
+
+        try:
+            content = json.loads(payload)["choices"][0]["message"]["content"]
+            obj = json.loads(content)
+        except (KeyError, IndexError, ValueError, TypeError) as e:
+            raise VlmError(f"응답을 해석할 수 없다: {e}") from e
+
+        from .capability import ContractError
+
+        try:
+            call = self.registry.validate(obj)
+        except ContractError as e:
+            raise VlmError(f"계약 위반: {e}") from e
+        return call, latency, content

@@ -1,0 +1,21 @@
+{
+  "id": "servo_pointer",
+  "kind": "servo",
+  "description": "Servo that points at the object the camera sees. 0 is left, 180 is right.",
+  "transport": {"type": "null"},
+  "commands": {
+    "point": {
+      "description": "Point the servo at a horizontal position",
+      "wire": "SERVO {angle}",
+      "args": {
+        "angle": {"type": "int", "min": 0, "max": 180,
+                  "description": "0 = far left, 90 = centre, 180 = far right"}
+      }
+    },
+    "centre": {
+      "description": "Return the servo to the middle",
+      "wire": "SERVO 90",
+      "args": {}
+    }
+  }
+}

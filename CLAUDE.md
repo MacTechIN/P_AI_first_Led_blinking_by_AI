@@ -17,6 +17,9 @@ host/blink.py                     Jetson-side controller (pyserial) that sends c
 perception/                       L2 perception: frame sources + health checks (µ1.4)
 control/                          L1/L3: features, policies, actuators, control loop (VS-2)
 control/vlm.py                    VS-3: async VLM policy, schema enforcement, validator
+control/capability.py             VS-4: capability contract (declaration -> schema+validator+wire)
+capabilities/*.json               device declarations; adding one needs no code
+host/vs4_demo.py                  VS-4 demo: camera -> VLM -> contract -> device
 host/vs2_demo.py                  VS-2 end-to-end demo (camera colour -> LED)
 host/verify_rgb.py                closed-loop colour check: commanded vs photographed
 tests/                            pytest suite; runs without a camera attached
@@ -120,6 +123,19 @@ flag or model:
 - The response schema and `control.vlm.validate` state the same contract twice; a test
   pins them together. They drifted once and the validator then rejected 4 of 5 replies
   while the fallback masked it entirely — watch `policy.stats` (ADR-0009).
+
+## Capability contract (VS-4)
+
+Devices are declared in `capabilities/*.json`, not written in Python. One declaration
+produces the model's JSON schema, the output validator, and the wire strings, so
+**adding an actuator needs no code** — that is the acceptance test
+(`test_adding_a_device_needs_no_code`) and it was confirmed on hardware: dropping in
+`servo_pointer.json` left every Python file byte-identical while the model's schema grew
+from 3 options to 5.
+
+The `wire` template is what makes this work. Without it each device needs a Python
+adapter and the whole property collapses. Keep declared ranges in step with the firmware
+constants — the firmware is still the boundary a model cannot cross (ADR-0003, ADR-0010).
 
 ## Toolchain
 
