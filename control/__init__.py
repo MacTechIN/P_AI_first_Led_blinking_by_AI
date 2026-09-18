@@ -3,8 +3,10 @@
 from .actuator import Actuator, NullActuator, SerialLedActuator
 from .commands import CommandError, LedCommand
 from .direction import DEFAULT_MARGIN, ZONE_HUE, DirectionPolicy, zone_of
+from .motion import ALARM_HUE, CALM_HUE, MotionDetector, MotionPolicy
 from .evaluate import Case, CaseResult, GoldenError, Report, load_cases, matches
 from .direction import DEFAULT_MARGIN, ZONE_HUE, DirectionPolicy, zone_of
+from .motion import ALARM_HUE, CALM_HUE, MotionDetector, MotionPolicy
 from .evaluate import run as run_golden
 from .features import SceneFeatures, classify_hue, extract, hue_to_rgb
 from .loop import ControlLoop, StepResult, summarize
@@ -76,4 +78,8 @@ __all__ = [
     "zone_of",
     "ZONE_HUE",
     "DEFAULT_MARGIN",
+    "MotionDetector",
+    "MotionPolicy",
+    "CALM_HUE",
+    "ALARM_HUE",
 ]

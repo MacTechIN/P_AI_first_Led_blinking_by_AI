@@ -31,6 +31,10 @@ control/                          L1/L3: features, policies, actuators, control 
 control/vlm.py                    VS-3: async VLM policy, schema enforcement, validator
 control/capability.py             VS-4: capability contract (declaration -> schema+validator+wire)
 control/evaluate.py               VS-6: golden-set evaluation (regression detection)
+control/direction.py              example 1: position -> colour (rule beats the VLM here)
+control/motion.py                 example 2: frame differencing + alarm state machine
+host/measure_direction.py         rule vs VLM on spatial judgement
+host/measure_motion.py            measure the noise floor before picking a threshold
 golden/                           golden set: images + expected decisions
 host/evaluate.py                  run the golden set; non-zero exit means regression
 capabilities/*.json               device declarations; adding one needs no code
@@ -147,6 +151,11 @@ flag or model:
   on `GGML_ASSERT(n_tokens_all <= cparams.n_batch)`.
 - **`/health` returning ok does not mean it works.** The server reports `model loaded`
   even when the vision buffer failed to allocate. Send a real request to find out.
+- **The VLM cannot judge position.** Asked which third of the frame an object sits in, it
+  answered "left" for all nine positions — 3/9, and the three were the ones that happened
+  to be left. Larger images bought one more correct answer for 3.5x the latency. Rules do
+  this in 7 ms at 9/9 (`docs/tech/notes/direction-rule-vs-vlm.md`). Colour is
+  interpretation; position is arithmetic — don't hand arithmetic to the model.
 - Inference is ~1-3 s against a 34 ms control loop, so `VlmPolicy` runs it on a worker
   thread and `decide()` returns the last completed command without blocking (ADR-0008).
   A fallback policy answers until the first decision lands, and holds if the VLM dies.
