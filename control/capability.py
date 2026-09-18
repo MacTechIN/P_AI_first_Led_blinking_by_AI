@@ -124,15 +124,32 @@ class Device:
     transport: dict[str, Any]
     commands: dict[str, CommandSpec]
     description: str = ""
+    status: str = "wired"
+    """`planned` 이면 아직 물리적으로 붙지 않은 장치다.
+
+    선언은 존재하고 스키마에도 나타나지만 전송로가 `null` 이라 명령이 어디에도
+    가지 않는다. 계약 구조를 검증하려고 실물보다 선언이 먼저 존재할 수 있으므로,
+    그 상태를 선언 안에 적어 둔다 — 파일만 보고 동작한다고 오해하지 않도록.
+    """
+
+    @property
+    def wired(self) -> bool:
+        return self.status != "planned"
 
     @classmethod
     def parse(cls, raw: dict[str, Any]) -> "Device":
         for key in ("id", "kind", "transport", "commands"):
             if key not in raw:
                 raise ContractError(f"선언에 {key} 가 없다")
+        status = raw.get("status", "wired")
+        if status == "planned" and raw["transport"].get("type") != "null":
+            raise ContractError(
+                f"{raw['id']}: status=planned 인데 전송로가 null 이 아니다. "
+                "미배선 장치가 실제 포트로 명령을 보내면 안 된다"
+            )
         return cls(
             id=raw["id"], kind=raw["kind"], transport=raw["transport"],
-            description=raw.get("description", ""),
+            description=raw.get("description", ""), status=status,
             commands={k: CommandSpec.parse(k, v) for k, v in raw["commands"].items()},
         )
 
@@ -204,7 +221,8 @@ class Registry:
         """프롬프트에 넣을 사람이 읽는 요약."""
         lines = []
         for dev in self.devices.values():
-            lines.append(f"- {dev.id} ({dev.kind}): {dev.description}")
+            mark = "" if dev.wired else " [not wired yet]"
+            lines.append(f"- {dev.id} ({dev.kind}){mark}: {dev.description}")
             for cmd in dev.commands.values():
                 args = ", ".join(
                     f"{n} {a.type}"

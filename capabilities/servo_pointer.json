@@ -1,7 +1,9 @@
 {
   "id": "servo_pointer",
   "kind": "servo",
-  "description": "Servo that points at the object the camera sees. 0 is left, 180 is right.",
+  "description": "NOT WIRED YET — declaration only. Servo that would point at the object the camera sees; 0 is left, 180 is right.",
+  "status": "planned",
+  "note": "transport is 'null' on purpose: no servo is physically attached, so commands are recorded and go nowhere. This file exists to demonstrate that adding a device needs no code (VS-4, ADR-0010). When the servo is fitted, change transport to {\"type\": \"serial\", \"port\": \"/dev/ttyACM0\"}, teach the firmware the SERVO command, and drop the status/note fields.",
   "transport": {"type": "null"},
   "commands": {
     "point": {

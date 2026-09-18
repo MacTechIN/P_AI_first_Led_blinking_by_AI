@@ -226,3 +226,33 @@ def test_unsupported_transport_is_rejected(tmp_path):
     r = Registry.load(tmp_path)
     with pytest.raises(ContractError, match="전송 방식"):
         ContractActuator(r).apply(r.validate({"device": "d", "command": "go"}))
+
+
+# --- 미배선 장치 ---
+
+
+def test_planned_device_must_not_have_a_real_transport(tmp_path):
+    """선언만 있고 실물이 없는 장치가 진짜 포트로 명령을 보내면 안 된다."""
+    (tmp_path / "d.json").write_text(json.dumps({
+        "id": "ghost", "kind": "servo", "status": "planned",
+        "transport": {"type": "serial", "port": "/dev/ttyACM0"},
+        "commands": {"go": {"wire": "GO", "args": {}}},
+    }))
+    with pytest.raises(ContractError, match="null 이 아니다"):
+        Registry.load(tmp_path)
+
+
+def test_planned_device_is_marked_in_the_prompt(tmp_path):
+    (tmp_path / "d.json").write_text(json.dumps({
+        "id": "ghost", "kind": "servo", "status": "planned",
+        "description": "future servo", "transport": {"type": "null"},
+        "commands": {"go": {"wire": "GO", "args": {}}},
+    }))
+    assert "[not wired yet]" in Registry.load(tmp_path).describe()
+
+
+def test_shipped_servo_is_declared_as_not_wired():
+    """실물 서보가 붙기 전까지 선언이 그 사실을 말해야 한다."""
+    dev = Registry.load().devices["servo_pointer"]
+    assert dev.wired is False
+    assert dev.transport["type"] == "null"

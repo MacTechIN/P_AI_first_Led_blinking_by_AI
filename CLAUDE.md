@@ -137,6 +137,13 @@ The `wire` template is what makes this work. Without it each device needs a Pyth
 adapter and the whole property collapses. Keep declared ranges in step with the firmware
 constants — the firmware is still the boundary a model cannot cross (ADR-0003, ADR-0010).
 
+**`servo_pointer` is a declaration only — no servo is physically attached.** It carries
+`"status": "planned"` and a `null` transport, so its commands are recorded and go
+nowhere, and it shows as `[not wired yet]` in the prompt the model sees. A `planned`
+device with a real transport is rejected at load time, so a declaration written ahead of
+its hardware cannot drive a live port. When the servo is fitted: switch the transport to
+serial, teach the firmware a `SERVO` command, and drop the `status`/`note` fields.
+
 ## Toolchain
 
 `arduino-cli` (1.5.x) and `gh` are installed **per-user** in `~/.local/bin` — not via apt,
