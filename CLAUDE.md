@@ -63,6 +63,7 @@ make test       # pytest (camera-dependent tests skip themselves)
 ./host/vs2_demo.py --policy rule          # blink-rate encoding instead of mirroring
 ./host/vs2_demo.py --policy vlm --lock    # VS-3: the VLM decides (server must be up)
 ./host/verify_rgb.py --level 40 --lock    # commanded vs photographed colour
+./host/rainbow.py --period 8              # cycle the LED through the hue wheel
 ./host/vs2_demo.py --source synthetic --dry-run   # no hardware at all
 ```
 
@@ -102,7 +103,12 @@ not an optimisation. `MirrorColorPolicy` additionally holds its output with hyst
 without it, sensor noise alone produced 18 commands in 20 still frames (ADR-0007).
 
 Blink timing lives on the Arduino (`millis()`-based, rollover-safe) so it is unaffected by
-host scheduling. `--pattern` is the deliberate exception: it is timed host-side.
+host scheduling. `--pattern` and `host/rainbow.py` are the deliberate exceptions: both are
+timed host-side, because the firmware knows nothing of those patterns and neither needs
+millisecond precision — a smooth colour fade hides host jitter entirely.
+
+**Only one process may hold `/dev/ttyACM0`.** `rainbow.py` keeps the port while it runs,
+so the VS-2/VS-3/VS-4 demos cannot start until it stops.
 
 ## Local VLM
 
