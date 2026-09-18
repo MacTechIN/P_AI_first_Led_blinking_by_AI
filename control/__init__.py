@@ -2,6 +2,8 @@
 
 from .actuator import Actuator, NullActuator, SerialLedActuator
 from .commands import CommandError, LedCommand
+from .evaluate import Case, CaseResult, GoldenError, Report, load_cases, matches
+from .evaluate import run as run_golden
 from .features import SceneFeatures, classify_hue, extract, hue_to_rgb
 from .loop import ControlLoop, StepResult, summarize
 from .policy import COLOR_RULES, ColorRulePolicy, MirrorColorPolicy, Policy
@@ -61,4 +63,11 @@ __all__ = [
     "ContractError",
     "ContractActuator",
     "ContractVlmClient",
+    "Case",
+    "CaseResult",
+    "Report",
+    "GoldenError",
+    "load_cases",
+    "matches",
+    "run_golden",
 ]

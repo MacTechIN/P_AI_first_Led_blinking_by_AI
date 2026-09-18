@@ -160,3 +160,68 @@ def test_instructor_guide_references_resolve():
     text = Path("docs/labs/INSTRUCTOR.md").read_text()
     for ref in re.findall(r"`(docs/tech/notes/[\w-]+\.md)`", text):
         assert Path(ref).exists(), f"없는 문서: {ref}"
+
+
+# --- 모듈 6 (labs/07-safety-evaluation.md) ---
+
+
+def test_lab07_golden_set_loads():
+    from control import load_cases
+
+    cases = load_cases("golden")
+    assert len(cases) >= 5
+    assert all(c.note for c in cases), "모든 사례에 note 가 있어야 한다"
+
+
+def test_lab07_partial_match_semantics():
+    """부분 일치의 양날 — 적지 않은 필드는 검사하지 않는다."""
+    from control import matches
+
+    got = {"action": "none", "colour": "red", "reason": "x"}
+    assert matches({"colour": "red"}, got) is True, "colour 만 보면 통과한다"
+    assert matches({"colour": "red", "action": "on"}, got) is False, "action 도 보면 잡힌다"
+
+
+def test_lab07_empty_expectation_always_passes():
+    """실습 4: 기대값이 없는 사례는 아무것도 지키지 않는다."""
+    from control import matches
+
+    assert matches({}, {"anything": "at all"}) is True
+
+
+def test_lab07_missing_result_fails():
+    from control import matches
+
+    assert matches({"colour": "red"}, None) is False
+
+
+def test_lab07_report_exit_status():
+    from control import Case, CaseResult, Report
+    from pathlib import Path
+
+    c = Case("x", Path("golden/red.jpg"), {"colour": "red"})
+    assert Report([CaseResult(c, {"colour": "red"}, True, 1.0)]).ok is True
+    assert Report([CaseResult(c, {"colour": "blue"}, False, 1.0)]).ok is False
+    assert Report([]).ok is False, "사례가 없으면 통과가 아니다"
+
+
+def test_lab07_evaluation_survives_a_failing_policy():
+    """정책이 예외를 던져도 평가는 나머지 사례를 계속해야 한다."""
+    from control import load_cases, run_golden
+
+    def broken(image):
+        raise RuntimeError("policy exploded")
+
+    report = run_golden(load_cases("golden"), broken)
+    assert report.total >= 5 and report.passed == 0
+    assert all("RuntimeError" in r.error for r in report.results)
+
+
+def test_lab07_firmware_declares_a_watchdog():
+    """실습서가 WATCHDOG 명령을 쓴다. 펌웨어에 실제로 있어야 한다."""
+    from pathlib import Path
+
+    sketch = Path("arduino/rgb_led/rgb_led.ino").read_text()
+    assert 'WATCHDOG ' in sketch
+    assert "enterSafeState" in sketch
+    assert "watchdogMs = 0" in sketch, "기본값은 꺼져 있어야 한다"

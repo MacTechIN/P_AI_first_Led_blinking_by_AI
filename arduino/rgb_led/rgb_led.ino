@@ -29,8 +29,10 @@
  *   BLINK            blink the colour on/off
  *   INT <ms>         blink half-period, 10-5000
  *   LEVEL <n>        master brightness 0-255, scales all channels
- *   STATE            report mode, interval, level, colour, blue-pwm flag
- *   PING             -> PONG
+ *   WATCHDOG <ms>    0 disables; otherwise blank the LED if no command arrives
+ *                    within that window (10-60000)
+ *   STATE            report mode, interval, level, colour, flags
+ *   PING             -> PONG (also feeds the watchdog)
  *
  * Ranges are enforced here as well as host-side: the host check is a
  * convenience, this one is the boundary a model cannot cross (ADR-0003).
@@ -63,6 +65,8 @@ const unsigned long BAUD = 115200;
 const unsigned long MIN_INTERVAL = 10;
 const unsigned long MAX_INTERVAL = 5000;
 const uint8_t MAX_LEVEL = 255;
+const unsigned long MIN_WATCHDOG = 10;
+const unsigned long MAX_WATCHDOG = 60000;
 
 enum Mode { MODE_BLINK, MODE_ON, MODE_OFF };
 
@@ -73,6 +77,15 @@ uint8_t level = MAX_LEVEL;
 uint8_t red = 0, green = 0, blue = 0;
 bool lit = false;
 String line;
+
+// Watchdog. Off by default: an LED left glowing harms nothing, and the blink
+// and colour-cycle demos deliberately set a state and stop talking. A device
+// that can damage itself or its surroundings -- a servo, a stepper -- must
+// enable it at startup, because a host that dies mid-motion otherwise leaves
+// the mechanism driving into its end stop.
+unsigned long watchdogMs = 0;
+unsigned long lastCommand = 0;
+bool watchdogTripped = false;
 
 // Duty as the LED sees it: 0 = dark, 255 = full, regardless of wiring polarity.
 void driveChannel(uint8_t pin, uint16_t duty) {
@@ -101,6 +114,7 @@ void setup() {
   line.reserve(48);
   Serial.begin(BAUD);
   while (!Serial) { ; }
+  lastCommand = millis();
   Serial.print(F("READY rgb_led blue_pwm="));
   Serial.print(BLUE_IS_PWM ? 1 : 0);
   Serial.print(F(" common_anode="));
@@ -122,7 +136,11 @@ void reportState() {
   Serial.print(F(" blue_pwm="));
   Serial.print(BLUE_IS_PWM ? 1 : 0);
   Serial.print(F(" common_anode="));
-  Serial.println(COMMON_ANODE ? 1 : 0);
+  Serial.print(COMMON_ANODE ? 1 : 0);
+  Serial.print(F(" watchdog="));
+  Serial.print(watchdogMs);
+  Serial.print(F(" tripped="));
+  Serial.println(watchdogTripped ? 1 : 0);
 }
 
 // Parse "<a> <b> <c>" into three 0-255 values. Returns false on any bad field.
@@ -144,22 +162,41 @@ bool parseTriple(const String &s, long *out) {
   return true;
 }
 
+// The safe state. For this device that is dark; for a servo it would be a
+// known-good position, and for a stepper, de-energised.
+void enterSafeState() {
+  watchdogTripped = true;
+  mode = MODE_OFF;
+  writeChannels(false);
+  Serial.println(F("WATCHDOG tripped, entered safe state"));
+}
+
 void handleCommand(String cmd) {
   cmd.trim();
   if (cmd.length() == 0) return;
   cmd.toUpperCase();
 
+  // Every command feeds the watchdog, but only a command that drives an output
+  // clears the trip. Otherwise STATE -- the very command used to observe the
+  // trip -- clears it first, and the flag can never be read. A tripped device
+  // also *should* stay in its safe state until something explicitly commands
+  // it back, rather than resuming because the host said hello.
+  lastCommand = millis();
+
   if (cmd == F("PING")) {
     Serial.println(F("PONG"));
   } else if (cmd == F("BLINK")) {
+    watchdogTripped = false;
     mode = MODE_BLINK;
     lastToggle = millis();
     Serial.println(F("OK BLINK"));
   } else if (cmd == F("ON")) {
+    watchdogTripped = false;
     mode = MODE_ON;
     writeChannels(true);
     Serial.println(F("OK ON"));
   } else if (cmd == F("OFF")) {
+    watchdogTripped = false;
     mode = MODE_OFF;
     writeChannels(false);
     Serial.println(F("OK OFF"));
@@ -187,6 +224,15 @@ void handleCommand(String cmd) {
       Serial.print(F("OK LEVEL "));
       Serial.println(level);
     }
+  } else if (cmd.startsWith(F("WATCHDOG "))) {
+    long ms = cmd.substring(9).toInt();
+    if (ms != 0 && (ms < (long)MIN_WATCHDOG || ms > (long)MAX_WATCHDOG)) {
+      Serial.println(F("ERR watchdog must be 0 or 10-60000"));
+    } else {
+      watchdogMs = (unsigned long)ms;
+      Serial.print(F("OK WATCHDOG "));
+      Serial.println(watchdogMs);
+    }
   } else if (cmd.startsWith(F("INT "))) {
     long ms = cmd.substring(4).toInt();
     if (ms < (long)MIN_INTERVAL || ms > (long)MAX_INTERVAL) {
@@ -210,6 +256,13 @@ void loop() {
     } else if (line.length() < 47) {
       line += c;
     }
+  }
+
+  // Watchdog is checked before anything else drives an output: a tripped
+  // device must not keep blinking on its way to the safe state.
+  if (watchdogMs > 0 && !watchdogTripped &&
+      (millis() - lastCommand) >= watchdogMs) {
+    enterSafeState();
   }
 
   if (mode == MODE_BLINK) {

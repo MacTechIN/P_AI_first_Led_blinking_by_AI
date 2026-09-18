@@ -30,6 +30,9 @@ perception/                       L2 perception: frame sources + health checks (
 control/                          L1/L3: features, policies, actuators, control loop (VS-2)
 control/vlm.py                    VS-3: async VLM policy, schema enforcement, validator
 control/capability.py             VS-4: capability contract (declaration -> schema+validator+wire)
+control/evaluate.py               VS-6: golden-set evaluation (regression detection)
+golden/                           golden set: images + expected decisions
+host/evaluate.py                  run the golden set; non-zero exit means regression
 capabilities/*.json               device declarations; adding one needs no code
 host/vs4_demo.py                  VS-4 demo: camera -> VLM -> contract -> device
 host/vs2_demo.py                  VS-2 end-to-end demo (camera colour -> LED)
@@ -76,7 +79,13 @@ Override the port with `PORT=/dev/ttyACM1 make flash`.
 
 115200 baud, newline-terminated ASCII, one reply line per command. The sketch prints
 `READY led_blink` after reset. Commands: `BLINK`, `ON`, `OFF`, `INT <ms>` (10-5000),
-`LEVEL <n>` (0-255, PWM brightness), `STATE`, `PING` → `PONG`.
+`LEVEL <n>` (0-255, PWM brightness), `WATCHDOG <ms>` (0 = off), `STATE`, `PING` → `PONG`.
+
+The watchdog is **off by default** — an LED left lit harms nothing and the blink and
+hue-cycle demos deliberately set a state and stop talking. A device that can damage itself
+must enable it at startup. Every command feeds it, but only a command that drives an
+output clears the trip, so `STATE` can observe a trip instead of erasing it, and a tripped
+device stays safe until something explicitly commands it back.
 
 RGB LED on **B=9, R=10, G=11** (all PWM), plus `RGB <r> <g> <b>`. Pin 13 mirrors on/off.
 Range limits are enforced in firmware as well as in `control/commands.py` — the host check

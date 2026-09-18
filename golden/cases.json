@@ -1,0 +1,46 @@
+[
+  {
+    "name": "red LED",
+    "image": "red.jpg",
+    "expect": {
+      "colour": "red",
+      "action": "on"
+    },
+    "note": "LED 를 hue 0 (#ff0000) 로 켜고 촬영 · colour 와 action 을 모두 고정한다"
+  },
+  {
+    "name": "green LED",
+    "image": "green.jpg",
+    "expect": {
+      "colour": "green",
+      "action": "on"
+    },
+    "note": "LED 를 hue 60 (#00ff00) 로 켜고 촬영 · colour 와 action 을 모두 고정한다"
+  },
+  {
+    "name": "blue LED",
+    "image": "blue.jpg",
+    "expect": {
+      "colour": "blue",
+      "action": "on"
+    },
+    "note": "LED 를 hue 120 (#0000ff) 로 켜고 촬영 · colour 와 action 을 모두 고정한다"
+  },
+  {
+    "name": "yellow LED",
+    "image": "yellow.jpg",
+    "expect": {
+      "colour": "yellow",
+      "action": "on"
+    },
+    "note": "LED 를 hue 30 (#ffff00) 로 켜고 촬영 · colour 와 action 을 모두 고정한다"
+  },
+  {
+    "name": "LED 소등",
+    "image": "dark.jpg",
+    "expect": {
+      "action": "off"
+    },
+    "note": "색 있는 물체가 없다. 지어내면 실패다."
+  }
+]
