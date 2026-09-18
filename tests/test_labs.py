@@ -104,7 +104,7 @@ def test_every_module_has_a_lab_guide():
     labs = {p.name for p in Path("docs/labs").glob("*.md")}
     expected = {"00-setup.md", "01-hardware-truth.md", "02-actuator-timing.md",
                 "03-perception.md", "04-rule-loop.md", "05-ondevice-ai.md",
-                "06-capability-contract.md"}
+                "06-capability-contract.md", "07-safety-evaluation.md"}
     assert expected <= labs
 
 
@@ -136,7 +136,9 @@ def test_every_exercise_has_an_answer():
     import re
     from pathlib import Path
 
-    labs = sorted(Path("docs/labs").glob("0[1-6]*.md"))
+    # 모듈이 늘면 자동으로 포함된다. 번호 범위를 박아두면 새 모듈이 조용히 빠진다.
+    labs = sorted(p for p in Path("docs/labs").glob("*.md")
+                  if p.name[0].isdigit() and p.name != "00-setup.md")
     asked = sum(_exercise_count(f) for f in labs)
     answered = len(re.findall(
         r"^\*\*\d+\. ", Path("docs/labs/INSTRUCTOR.md").read_text(), re.M))
@@ -148,7 +150,7 @@ def test_instructor_guide_covers_every_module():
     from pathlib import Path
 
     text = Path("docs/labs/INSTRUCTOR.md").read_text()
-    for module in ("모듈 0", "모듈 1", "모듈 2", "모듈 3", "모듈 4", "모듈 5"):
+    for module in ("모듈 0", "모듈 1", "모듈 2", "모듈 3", "모듈 4", "모듈 5", "모듈 6"):
         assert f"### {module}" in text, f"{module} 해설이 없다"
 
 
