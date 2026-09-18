@@ -16,6 +16,7 @@ arduino/rgb_led/rgb_led.ino       sketch: RGB LED driver + serial command parser
 host/blink.py                     Jetson-side controller (pyserial) that sends commands
 perception/                       L2 perception: frame sources + health checks (µ1.4)
 control/                          L1/L3: features, policies, actuators, control loop (VS-2)
+control/vlm.py                    VS-3: async VLM policy, schema enforcement, validator
 host/vs2_demo.py                  VS-2 end-to-end demo (camera colour -> LED)
 host/verify_rgb.py                closed-loop colour check: commanded vs photographed
 tests/                            pytest suite; runs without a camera attached
@@ -42,6 +43,7 @@ make test       # pytest (camera-dependent tests skip themselves)
 ./host/blink.py --repl           # interactive prompt
 ./host/vs2_demo.py --steps 30 --lock      # VS-2 loop on real hardware
 ./host/vs2_demo.py --policy rule          # blink-rate encoding instead of mirroring
+./host/vs2_demo.py --policy vlm --lock    # VS-3: the VLM decides (server must be up)
 ./host/verify_rgb.py --level 40 --lock    # commanded vs photographed colour
 ./host/vs2_demo.py --source synthetic --dry-run   # no hardware at all
 ```
@@ -109,8 +111,15 @@ flag or model:
   on `GGML_ASSERT(n_tokens_all <= cparams.n_batch)`.
 - **`/health` returning ok does not mean it works.** The server reports `model loaded`
   even when the vision buffer failed to allocate. Send a real request to find out.
-- Inference is 2.2-2.9 s, against a 34.6 ms control loop, so the VLM never runs inside
-  that loop (ADR-0008).
+- Inference is ~1-3 s against a 34 ms control loop, so `VlmPolicy` runs it on a worker
+  thread and `decide()` returns the last completed command without blocking (ADR-0008).
+  A fallback policy answers until the first decision lands, and holds if the VLM dies.
+- `action: "none"` is a legal model output meaning "cannot judge", and it **holds** the
+  previous command rather than turning the LED off. Without that exit the model invents
+  an answer.
+- The response schema and `control.vlm.validate` state the same contract twice; a test
+  pins them together. They drifted once and the validator then rejected 4 of 5 replies
+  while the fallback masked it entirely — watch `policy.stats` (ADR-0009).
 
 ## Toolchain
 

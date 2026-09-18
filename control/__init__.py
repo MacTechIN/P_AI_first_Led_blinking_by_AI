@@ -5,6 +5,17 @@ from .commands import CommandError, LedCommand
 from .features import SceneFeatures, classify_hue, extract, hue_to_rgb
 from .loop import ControlLoop, StepResult, summarize
 from .policy import COLOR_RULES, ColorRulePolicy, MirrorColorPolicy, Policy
+from .vlm import (
+    COLOURS,
+    RESPONSE_SCHEMA,
+    SYSTEM_PROMPT,
+    VlmClient,
+    VlmDecision,
+    VlmError,
+    VlmPolicy,
+    to_command,
+    validate,
+)
 
 __all__ = [
     "LedCommand",
@@ -23,4 +34,13 @@ __all__ = [
     "ControlLoop",
     "StepResult",
     "summarize",
+    "VlmPolicy",
+    "VlmClient",
+    "VlmDecision",
+    "VlmError",
+    "validate",
+    "to_command",
+    "RESPONSE_SCHEMA",
+    "SYSTEM_PROMPT",
+    "COLOURS",
 ]

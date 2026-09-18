@@ -64,7 +64,7 @@ class ControlLoop:
         t["extract"] = (time.perf_counter() - t0) * 1000
 
         t0 = time.perf_counter()
-        command = self.policy.decide(features)
+        command = self.policy.decide(features, obs)
         t["decide"] = (time.perf_counter() - t0) * 1000
 
         changed = command != self._last

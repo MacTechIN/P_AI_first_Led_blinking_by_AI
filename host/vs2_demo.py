@@ -36,7 +36,8 @@ def main() -> None:
     p.add_argument("--width", type=int, default=640)
     p.add_argument("--height", type=int, default=480)
     p.add_argument("--dry-run", action="store_true", help="LED 를 구동하지 않는다")
-    p.add_argument("--policy", choices=["mirror", "rule"], default="mirror")
+    p.add_argument("--policy", choices=["mirror", "rule", "vlm"], default="mirror")
+    p.add_argument("--vlm-url", default="http://127.0.0.1:8080/v1/chat/completions")
     p.add_argument("--lock", action="store_true", help="화이트밸런스·노출 고정")
     args = p.parse_args()
 
@@ -44,18 +45,26 @@ def main() -> None:
     if args.lock and args.source != "synthetic":
         kw |= {"wbmode": 1, "awblock": True, "aelock": True}
     source = open_source(args.source, **kw)
-    policy = MirrorColorPolicy() if args.policy == "mirror" else ColorRulePolicy()
+    if args.policy == "vlm":
+        from control import VlmClient, VlmPolicy
+        policy = VlmPolicy(VlmClient(args.vlm_url), fallback=MirrorColorPolicy())
+    elif args.policy == "mirror":
+        policy = MirrorColorPolicy()
+    else:
+        policy = ColorRulePolicy()
     actuator = NullActuator() if args.dry_run else SerialLedActuator(args.port)
 
     print(f"소스 {args.source}  정책 {policy.name}  "
           f"액추에이터 {type(actuator).__name__}  {args.steps} 스텝")
     print("색 있는 물체를 카메라 앞에서 움직여 보세요.\n")
 
+    started = getattr(policy, "start", lambda: policy)()
     try:
         with source:
             loop = ControlLoop(source, policy, actuator)
             results = loop.run(steps=args.steps, on_step=lambda r: print(r.describe()))
     finally:
+        getattr(policy, "stop", lambda: None)()
         actuator.close()
 
     s = summarize(results)
@@ -66,6 +75,10 @@ def main() -> None:
           f"   {s['fps']:.1f} fps")
     changes = sum(1 for r in results if r.changed)
     print(f"  명령 전송 {changes}회 / {len(results)} 스텝")
+    if hasattr(policy, "stats"):
+        print(f"  VLM {policy.stats}")
+        if policy.last_decision:
+            print(f"  마지막 판단: {policy.last_decision.describe()}")
 
 
 if __name__ == "__main__":

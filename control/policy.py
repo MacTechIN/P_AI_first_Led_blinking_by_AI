@@ -13,15 +13,24 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
+from perception import Observation
+
 from .commands import LedCommand
 from .features import SceneFeatures, hue_to_rgb
 
 
 class Policy(ABC):
-    """특징 → 명령. VS-3 의 VLM 정책도 같은 인터페이스를 구현한다."""
+    """특징 → 명령. VS-3 의 VLM 정책도 같은 인터페이스를 구현한다.
+
+    `observation` 은 선택적이다. 규칙 정책은 추출된 특징만으로 충분하지만 VLM 은
+    원본 이미지를 봐야 하므로, 특징만 넘기면 VLM 정책을 이 인터페이스 뒤에 둘 수
+    없다. 기본값을 None 으로 두어 기존 정책은 그대로 동작한다.
+    """
 
     @abstractmethod
-    def decide(self, features: SceneFeatures) -> LedCommand: ...
+    def decide(
+        self, features: SceneFeatures, observation: "Observation | None" = None
+    ) -> LedCommand: ...
 
     @property
     def name(self) -> str:
@@ -78,7 +87,9 @@ class MirrorColorPolicy(Policy):
         self._held_hue: float | None = None
         self._held_level: int | None = None
 
-    def decide(self, features: SceneFeatures) -> LedCommand:
+    def decide(
+        self, features: SceneFeatures, observation: "Observation | None" = None
+    ) -> LedCommand:
         if features.color is None or features.hue is None:
             self._held_hue = self._held_level = None
             return LedCommand("off")
@@ -127,7 +138,9 @@ class ColorRulePolicy(Policy):
         self.min_level = min_level
         self.max_level = max_level
 
-    def decide(self, features: SceneFeatures) -> LedCommand:
+    def decide(
+        self, features: SceneFeatures, observation: "Observation | None" = None
+    ) -> LedCommand:
         if features.color is None:
             return LedCommand("off")
 
