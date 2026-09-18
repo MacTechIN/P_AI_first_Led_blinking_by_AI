@@ -40,6 +40,7 @@ docs/project_difinition.md        project definition (source of requirements)
 docs/development_plan.md          vertical-slice plan; start here for what to build next
 docs/curriculum.md                what this is ultimately for: a teaching curriculum
 docs/labs/                        module-by-module lab guides (parts list, steps, exercises)
+docs/labs/INSTRUCTOR.md           instructor guide: answers, sticking points, assessment
 docs/project_0_camtest.md         environment bring-up + camera investigation record
 docs/tech/adr/                    architecture decision records
 docs/research.md                  placeholder for Physical AI research notes

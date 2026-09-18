@@ -116,3 +116,47 @@ def test_curriculum_links_resolve():
     text = Path("docs/curriculum.md").read_text()
     for link in re.findall(r"\]\((labs/[^)]+)\)", text):
         assert (Path("docs") / link).exists(), f"끊긴 링크: {link}"
+
+
+# --- 강사용 해설서 정합성 ---
+
+
+def _exercise_count(path):
+    import re
+
+    text = path.read_text()
+    if "## 연습 문제" not in text:
+        return 0
+    block = text.split("## 연습 문제")[1].split("## 교훈")[0]
+    return len(re.findall(r"^\d+\. ", block, re.M))
+
+
+def test_every_exercise_has_an_answer():
+    """해답 없는 문제가 남으면 강사가 수업 중에 발견한다. 여기서 잡는다."""
+    import re
+    from pathlib import Path
+
+    labs = sorted(Path("docs/labs").glob("0[1-6]*.md"))
+    asked = sum(_exercise_count(f) for f in labs)
+    answered = len(re.findall(
+        r"^\*\*\d+\. ", Path("docs/labs/INSTRUCTOR.md").read_text(), re.M))
+    assert asked > 0
+    assert answered == asked, f"문제 {asked}개, 해답 {answered}개"
+
+
+def test_instructor_guide_covers_every_module():
+    from pathlib import Path
+
+    text = Path("docs/labs/INSTRUCTOR.md").read_text()
+    for module in ("모듈 0", "모듈 1", "모듈 2", "모듈 3", "모듈 4", "모듈 5"):
+        assert f"### {module}" in text, f"{module} 해설이 없다"
+
+
+def test_instructor_guide_references_resolve():
+    """해설서가 가리키는 원자료가 실제로 존재해야 한다."""
+    import re
+    from pathlib import Path
+
+    text = Path("docs/labs/INSTRUCTOR.md").read_text()
+    for ref in re.findall(r"`(docs/tech/notes/[\w-]+\.md)`", text):
+        assert Path(ref).exists(), f"없는 문서: {ref}"
