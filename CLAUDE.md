@@ -2,6 +2,18 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## What this project is for
+
+Implementing Physical AI fundamentals, building an easy-to-explain demonstration case,
+and **completing a teaching curriculum** from it. The deliverable is teachable material;
+working code is one part of that.
+
+This changes what counts as valuable here. **The recorded failures are the point, not
+clutter** — a course that only shows the happy path abandons the learner at the moment
+they get stuck. Every dead end in `docs/tech/` and every rejected alternative in an ADR
+is source material for a lesson. Keep writing them down, including the wrong turns and
+what measurement resolved them. `docs/curriculum.md` maps the slices to modules.
+
 ## Hardware context
 
 Host is an **NVIDIA Jetson Orin Nano Super Developer Kit** (Ubuntu 22.04, aarch64, L4T kernel
@@ -26,6 +38,7 @@ tests/                            pytest suite; runs without a camera attached
 Makefile                          build / flash / monitor wrappers around arduino-cli
 docs/project_difinition.md        project definition (source of requirements)
 docs/development_plan.md          vertical-slice plan; start here for what to build next
+docs/curriculum.md                what this is ultimately for: a teaching curriculum
 docs/project_0_camtest.md         environment bring-up + camera investigation record
 docs/tech/adr/                    architecture decision records
 docs/research.md                  placeholder for Physical AI research notes
