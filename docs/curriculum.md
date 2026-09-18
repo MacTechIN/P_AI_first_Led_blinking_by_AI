@@ -104,7 +104,7 @@ Physical AI 의 핵심 긴장이다. AI 판단은 초 단위, 물리 제어는 �
 - **교훈 (주제 C)**: 판단 분해능을 관측 신뢰도에 맞춘다
 
 ### 모듈 4 — 온디바이스 AI 판단
-**슬라이스** VS-3  **실습서** [`labs/05-ondevice-ai.md`](labs/05-ondevice-ai.md)  **자료** `control/vlm.py`, ADR-0008·0009
+**슬라이스** VS-3  **실습서** [`labs/05-ondevice-ai.md`](labs/05-ondevice-ai.md)  **시각자료** [`visuals/vlm-colour-loop.html`](visuals/vlm-colour-loop.html)  **자료** `control/vlm.py`, ADR-0008·0009
 
 - 실습: 로컬 VLM 을 올리고 메모리 예산을 실측
 - 핵심 경험: 7B 는 적재되지만 운용 중 죽는다 / 3B 는 더 빠르고 정확하다
@@ -141,6 +141,7 @@ Physical AI 의 핵심 긴장이다. AI 판단은 초 단위, 물리 제어는 �
 | **의도된 실패 실습** | ✅ 모듈 0~5 | 모듈당 2~4개, 모두 실제 사건 |
 | **연습 문제** | ✅ 모듈 0~5 | 모듈당 3문항 |
 | 강사용 해설·정답 | ✅ `labs/INSTRUCTOR.md` | 해답 18문항 + 막힐 지점 |
+| 시각 자료 | 🔶 모듈 4 | `visuals/vlm-colour-loop.html` |
 | 영상 시연 | ❌ 없음 | 다음 단계 |
 | 실제 수업 검증 | ❌ 없음 | 한 번 가르쳐 보고 보완 |
 | **부품 목록·배선도** | ✅ `labs/00-setup.md` | 실제로 막혔던 부품 함정 포함 |

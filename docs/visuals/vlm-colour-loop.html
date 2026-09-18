@@ -1,0 +1,387 @@
+<title>색을 보고 켜는 루프</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@400;500&display=swap">
+<style>
+  :root{
+    --ground:#f2f4f7; --surface:#ffffff; --surface-2:#e9ecf1;
+    --ink:#161920; --ink-2:#4a5260; --ink-3:#727b8a;
+    --rule:#d8dde5; --rule-2:#c3cad5;
+    --signal:#1f5fd0; --signal-soft:#e4ecfb;
+    --warn:#a8531b; --ok:#1f7a4d;
+    --shadow:0 1px 2px rgba(16,20,28,.06), 0 6px 20px rgba(16,20,28,.05);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ground:#0f1116; --surface:#171a21; --surface-2:#1f232c;
+      --ink:#e7eaf0; --ink-2:#a8b1bf; --ink-3:#7b8492;
+      --rule:#2a2f39; --rule-2:#3a4150;
+      --signal:#6b9dfa; --signal-soft:#1a2740;
+      --warn:#e0a06a; --ok:#5fc48f;
+      --shadow:0 1px 2px rgba(0,0,0,.4), 0 6px 20px rgba(0,0,0,.3);
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#0f1116; --surface:#171a21; --surface-2:#1f232c;
+    --ink:#e7eaf0; --ink-2:#a8b1bf; --ink-3:#7b8492;
+    --rule:#2a2f39; --rule-2:#3a4150;
+    --signal:#6b9dfa; --signal-soft:#1a2740;
+    --warn:#e0a06a; --ok:#5fc48f;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 6px 20px rgba(0,0,0,.3);
+  }
+
+  body{background:var(--ground); color:var(--ink);
+       font-family:"IBM Plex Serif","Noto Serif KR",Georgia,serif;
+       line-height:1.7; -webkit-font-smoothing:antialiased;}
+  .wrap{max-width:60rem; margin:0 auto; padding-inline:20px; padding-block:48px 72px;}
+  h1,h2,h3,.ui{font-family:"IBM Plex Sans","Noto Sans KR",system-ui,sans-serif;}
+  code,.mono,table{font-family:"IBM Plex Mono",ui-monospace,monospace;}
+
+  .eyebrow{font-size:.72rem; letter-spacing:.14em; text-transform:uppercase;
+           color:var(--ink-3); font-weight:600;}
+  h1{font-size:clamp(1.9rem,5vw,2.9rem); line-height:1.15; font-weight:600;
+     letter-spacing:-.02em; margin:.35em 0 .3em; text-wrap:balance;}
+  .lede{font-size:1.1rem; color:var(--ink-2); max-width:34em; margin:0;}
+  h2{font-size:1.35rem; font-weight:600; letter-spacing:-.01em;
+     margin:0 0 .2em; text-wrap:balance;}
+  h3{font-size:.95rem; font-weight:600; margin:0 0 .3em;}
+  p{margin:0 0 1em; max-width:40em;}
+  section{margin-top:56px;}
+  .sec-head{border-top:1px solid var(--rule); padding-top:18px; margin-bottom:22px;}
+
+  .card{background:var(--surface); border:1px solid var(--rule);
+        border-radius:10px; padding:20px; box-shadow:var(--shadow);}
+
+  /* --- 파이프라인 --- */
+  .pipe{display:flex; flex-direction:column; gap:10px;}
+  .stage{display:grid; grid-template-columns:auto 1fr auto; gap:16px;
+         align-items:start; background:var(--surface); border:1px solid var(--rule);
+         border-radius:10px; padding:16px 18px;}
+  .stage.ai{border-color:var(--signal); background:var(--signal-soft);}
+  .num{font-family:"IBM Plex Mono",monospace; font-size:.8rem; font-weight:500;
+       color:var(--ink-3); width:1.6em; padding-top:.15em;}
+  .stage.ai .num{color:var(--signal);}
+  .stage h3{font-family:"IBM Plex Sans",sans-serif;}
+  .stage p{font-size:.92rem; color:var(--ink-2); margin:0; max-width:46em;}
+  .ms{font-family:"IBM Plex Mono",monospace; font-size:.82rem; font-weight:500;
+      color:var(--ink-2); white-space:nowrap; padding-top:.15em;
+      font-variant-numeric:tabular-nums;}
+  .stage.ai .ms{color:var(--signal); font-weight:600;}
+  .arrow{text-align:center; color:var(--rule-2); font-size:1rem; line-height:1;}
+  .wire{display:inline-block; background:var(--surface-2); border:1px solid var(--rule);
+        border-radius:5px; padding:1px 7px; font-family:"IBM Plex Mono",monospace;
+        font-size:.8rem; color:var(--ink); margin:4px 4px 0 0;}
+
+  /* --- hue 탐색기 --- */
+  .explorer{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+            gap:24px; align-items:center;}
+  @media (max-width:640px){ .explorer{grid-template-columns:1fr;} }
+  .swatch{height:120px; border-radius:10px; border:1px solid var(--rule-2);
+          display:flex; align-items:flex-end; padding:10px;}
+  .swatch span{background:rgba(0,0,0,.55); color:#fff; border-radius:5px;
+               padding:2px 8px; font-family:"IBM Plex Mono",monospace; font-size:.8rem;}
+  input[type=range]{width:100%; accent-color:var(--signal); margin:14px 0 4px;}
+  .kv{display:grid; grid-template-columns:auto 1fr; gap:6px 14px;
+      font-family:"IBM Plex Mono",monospace; font-size:.85rem;
+      font-variant-numeric:tabular-nums;}
+  .kv dt{color:var(--ink-3);} .kv dd{margin:0; color:var(--ink);}
+  .lines{margin-top:12px; display:flex; flex-wrap:wrap; gap:6px;}
+
+  /* --- 결과 표 --- */
+  .scroll{overflow-x:auto; border:1px solid var(--rule); border-radius:10px;
+          background:var(--surface);}
+  table{border-collapse:collapse; width:100%; font-size:.85rem; min-width:34rem;}
+  th,td{text-align:left; padding:9px 14px; border-bottom:1px solid var(--rule);
+        white-space:nowrap;}
+  th{font-family:"IBM Plex Sans",sans-serif; font-size:.72rem; font-weight:600;
+     letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3);
+     background:var(--surface-2);}
+  tbody tr:last-child td{border-bottom:none;}
+  td.num-c{font-variant-numeric:tabular-nums; text-align:right;}
+  .chip{display:inline-block; width:13px; height:13px; border-radius:3px;
+        border:1px solid rgba(128,128,128,.4); vertical-align:-2px; margin-right:7px;}
+  .exact{color:var(--ok); font-weight:500;}
+  .near{color:var(--warn);}
+
+  /* --- 지연 비교 --- */
+  .bars{display:flex; flex-direction:column; gap:14px; margin-top:6px;}
+  .bar-row{display:grid; grid-template-columns:8.5rem 1fr auto; gap:12px;
+           align-items:center; font-size:.85rem;}
+  @media (max-width:560px){ .bar-row{grid-template-columns:7rem 1fr; }
+                            .bar-row .bv{grid-column:2; text-align:right;} }
+  .track{background:var(--surface-2); border-radius:4px; height:20px; overflow:hidden;}
+  .fill{height:100%; border-radius:4px;}
+  .bv{font-family:"IBM Plex Mono",monospace; font-variant-numeric:tabular-nums;
+      color:var(--ink-2); white-space:nowrap;}
+  .bl{font-family:"IBM Plex Sans",sans-serif; color:var(--ink-2);}
+
+  .note{border-left:3px solid var(--signal); background:var(--surface);
+        border-radius:0 8px 8px 0; padding:14px 18px; margin:18px 0 0;}
+  .note p{margin:0; font-size:.92rem;}
+  .note strong{font-weight:600;}
+  .grid2{display:grid; grid-template-columns:repeat(auto-fit,minmax(15rem,1fr)); gap:16px;}
+  footer{margin-top:64px; padding-top:18px; border-top:1px solid var(--rule);
+         font-size:.82rem; color:var(--ink-3); font-family:"IBM Plex Sans",sans-serif;}
+  @media (prefers-reduced-motion:reduce){ *{transition:none!important;} }
+  .swatch,.fill{transition:background-color .18s ease, width .3s ease;}
+</style>
+
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">Physical AI · 모듈 4 보조자료</div>
+    <h1>색을 보고 켜는 루프</h1>
+    <p class="lede">Jetson Orin Nano 위의 로컬 비전 모델이 카메라로 LED 색을 읽고,
+      계약을 통과한 명령으로 그 LED를 다시 제어한다. 아래 수치는 전부 이 기계에서
+      실제로 측정한 값이다.</p>
+  </header>
+
+  <section>
+    <div class="sec-head">
+      <h2>한 바퀴에 무슨 일이 일어나는가</h2>
+    </div>
+    <div class="pipe">
+      <div class="stage">
+        <div class="num">01</div>
+        <div>
+          <h3>LED가 빛난다</h3>
+          <p>아두이노가 PWM으로 세 채널을 구동한다. 호스트는 색만 정하고,
+            점멸 타이밍은 아두이노가 소유한다.</p>
+          <div><span class="wire">RGB 255 128 0</span><span class="wire">LEVEL 90</span><span class="wire">ON</span></div>
+        </div>
+        <div class="ms">~1 ms</div>
+      </div>
+      <div class="arrow">↓</div>
+
+      <div class="stage">
+        <div class="num">02</div>
+        <div>
+          <h3>카메라가 장면을 담는다</h3>
+          <p>IMX219 CSI 센서 → Tegra ISP → RGB 프레임. 노출·화이트밸런스를
+            고정하지 않으면 자동 보정이 색을 매번 다시 해석한다.</p>
+          <div><span class="wire">argus:0</span><span class="wire">1280×720</span><span class="wire">awblock=true</span></div>
+        </div>
+        <div class="ms">30 ms</div>
+      </div>
+      <div class="arrow">↓</div>
+
+      <div class="stage ai">
+        <div class="num">03</div>
+        <div>
+          <h3>비전 모델이 읽는다</h3>
+          <p>프레임을 768×432로 줄여 Qwen2.5-VL 3B에 넣는다. 이미지가 더 크면
+            토큰이 배치를 넘어 중단되고, 더 작으면 인식 정확도가 떨어진다.</p>
+          <div><span class="wire">Qwen2.5-VL-3B Q4_K_M</span><span class="wire">768×432</span></div>
+        </div>
+        <div class="ms">3306 ms</div>
+      </div>
+      <div class="arrow">↓</div>
+
+      <div class="stage">
+        <div class="num">04</div>
+        <div>
+          <h3>계약이 검사한다</h3>
+          <p>모델은 자유 문장이 아니라 선언된 스키마 안에서만 답한다.
+            없는 장치·없는 명령·범위 밖 값은 여기서 막힌다.</p>
+          <div><span class="wire">{"device":"led_main","command":"on","args":{…}}</span></div>
+        </div>
+        <div class="ms">&lt;1 ms</div>
+      </div>
+      <div class="arrow">↓</div>
+
+      <div class="stage">
+        <div class="num">05</div>
+        <div>
+          <h3>다시 LED로</h3>
+          <p>검증된 호출이 선언의 템플릿을 거쳐 시리얼 문장이 된다.
+            펌웨어가 범위를 한 번 더 확인한다 — 모델이 넘을 수 없는 경계다.</p>
+          <div><span class="wire">RGB 255 0 0</span><span class="wire">LEVEL 128</span><span class="wire">ON</span></div>
+        </div>
+        <div class="ms">~5 ms</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>색조 하나가 명령이 되기까지</h2>
+    </div>
+    <p>모델이 <em>“green”</em>이라고 답하면 그 이름은 색상환의 각도가 되고,
+      각도는 완전 채도의 RGB가 되고, RGB는 시리얼 문장이 된다.
+      슬라이더를 움직여 각 단계를 직접 확인할 수 있다.</p>
+    <div class="card explorer">
+      <div>
+        <div class="swatch" id="sw"><span id="swlabel">#ff0000</span></div>
+        <input type="range" id="hue" min="0" max="179" value="30"
+               aria-label="색조 (OpenCV 0–179)">
+        <div class="eyebrow" style="text-align:center">색조 0 – 179</div>
+      </div>
+      <div>
+        <dl class="kv">
+          <dt>이름</dt><dd id="kname">yellow</dd>
+          <dt>색조</dt><dd id="khue">30</dd>
+          <dt>RGB</dt><dd id="krgb">255, 255, 0</dd>
+        </dl>
+        <div class="lines" id="klines"></div>
+      </div>
+    </div>
+    <div class="note">
+      <p><strong>0–179입니다.</strong> OpenCV는 색상환을 360°가 아니라 180단계로 담는다.
+        그리고 빨강은 0 근처와 179 근처로 <strong>갈라진다</strong> — 이 둘을 평균 내면
+        정확히 청록이 나오므로, 지배 색조는 평균이 아니라 최빈값으로 구해야 한다.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>실제로 얼마나 맞히는가</h2>
+    </div>
+    <p>색상환을 12단계로 돌며 매번 물었다. <strong>“이 LED는 무슨 색으로 빛나고 있나?”</strong>
+      모델은 명령한 값을 모르고 사진만 본다.</p>
+    <div class="scroll">
+      <table>
+        <thead><tr>
+          <th>색조</th><th>명령한 색</th><th>모델의 답</th>
+          <th class="num-c">지연</th><th>판정</th>
+        </tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div class="note">
+      <p><strong>정확히 같은 이름은 12개 중 6개.</strong> 나머지 6개도 전부 색상환에서
+        <strong>바로 이웃한 이름</strong>이었다 — 주황을 빨강이라 하고, 청록을 초록이라 했다.
+        한 칸을 넘어 틀린 경우는 한 번도 없었다. 경계의 이름은 사람도 갈리므로,
+        “100% 정확”이 아니라 <strong>“한 칸 안에서 정확”</strong>이 정직한 표현이다.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>3.3초는 왜 문제가 되지 않는가</h2>
+    </div>
+    <p>비전 모델의 판단은 제어 루프 한 스텝보다 <strong>약 97배</strong> 느리다.
+      같은 루프에 넣으면 초당 0.3회로 떨어진다.</p>
+    <div class="card">
+      <div class="bars">
+        <div class="bar-row">
+          <span class="bl">촬영</span>
+          <div class="track"><div class="fill" style="width:0.91%;background:var(--ink-3)"></div></div>
+          <span class="bv">30 ms</span>
+        </div>
+        <div class="bar-row">
+          <span class="bl">특징 추출</span>
+          <div class="track"><div class="fill" style="width:0.11%;background:var(--ink-3)"></div></div>
+          <span class="bv">3.6 ms</span>
+        </div>
+        <div class="bar-row">
+          <span class="bl">규칙 판단</span>
+          <div class="track"><div class="fill" style="width:0.3%;background:var(--ink-3)"></div></div>
+          <span class="bv">0.0 ms</span>
+        </div>
+        <div class="bar-row">
+          <span class="bl">비전 모델 판단</span>
+          <div class="track"><div class="fill" style="width:100%;background:var(--signal)"></div></div>
+          <span class="bv">3306 ms</span>
+        </div>
+      </div>
+    </div>
+    <p style="margin-top:20px">해결은 모델을 빠르게 만드는 것이 아니라 <strong>분리</strong>다.
+      추론은 별도 스레드에서 돌고, 제어 루프는 <strong>마지막으로 완성된 판단</strong>을 들고
+      계속 돈다. 측정된 판단 시간은 <strong>0.0 ms</strong>, 루프는 <strong>30 fps</strong>를 유지한다.</p>
+    <div class="grid2" style="margin-top:20px">
+      <div class="card">
+        <h3>느린 쪽 — 정책 루프</h3>
+        <p style="font-size:.9rem;color:var(--ink-2);margin:0">몇 초에 한 번 장면을 해석해
+          <em>무엇을 할지</em> 정한다. 늦어도 되고, 실패해도 직전 판단이 유지된다.</p>
+      </div>
+      <div class="card">
+        <h3>빠른 쪽 — 제어 루프</h3>
+        <p style="font-size:.9rem;color:var(--ink-2);margin:0">30 fps로 돌며 정해진 의도를
+          집행한다. 점멸 타이밍은 여기서도 더 내려가 아두이노가 소유한다.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>모델이 지어내면 어떻게 되는가</h2>
+    </div>
+    <p>모델 출력은 하드웨어에 닿기 전 세 관문을 통과한다. 각 관문은 서로 다른 방식으로
+      뚫릴 수 있으므로 중복이 아니다.</p>
+    <div class="pipe" style="margin-top:4px">
+      <div class="stage"><div class="num">가</div><div>
+        <h3>스키마 강제</h3>
+        <p>디코딩 단계에서 JSON 구조를 강제한다. 사후에 파싱하는 방식은 반드시 깨진다.</p>
+      </div><div class="ms">생성 중</div></div>
+      <div class="stage"><div class="num">나</div><div>
+        <h3>계약 검증</h3>
+        <p>선언에 없는 장치·명령·인자와 범위 밖 값을 거부한다.
+          <code>laser.fire</code>, <code>angle=999</code> 같은 것이 여기서 막힌다.</p>
+      </div><div class="ms">호스트</div></div>
+      <div class="stage"><div class="num">다</div><div>
+        <h3>펌웨어 한계</h3>
+        <p>같은 범위를 아두이노가 다시 검사한다. 호스트는 우회할 수 있지만
+          <strong>펌웨어는 우회 경로가 없다.</strong></p>
+      </div><div class="ms">MCU</div></div>
+    </div>
+    <div class="note">
+      <p><strong>“모르겠다”도 합법적인 답이다.</strong> 스키마에 <code>none</code>을 넣어두지
+        않으면 모델은 반드시 지어낸다. 실제로 어두운 장면에서 모델은 색을 지어내는 대신
+        <em>“너무 어둡거나 흐려서 판단할 수 없다”</em>고 답했다. 그리고 <code>none</code>은
+        LED를 끄지 않고 <strong>직전 상태를 유지한다</strong> — “판단 못 함”과 “끄라”는 다른 말이다.</p>
+    </div>
+  </section>
+
+  <footer>
+    측정 환경 · Jetson Orin Nano Super 8GB · JetPack 6 (L4T R36.5) · IMX219 CSI 카메라 ·
+    Arduino Uno R3 · llama.cpp CUDA(sm_87) · Qwen2.5-VL-3B-Instruct Q4_K_M ·
+    12색 측정 평균 3306 ms
+  </footer>
+</div>
+
+<script>
+  var NAMES = [[0,"red"],[12,"orange"],[24,"yellow"],[36,"yellow"],[50,"green"],
+               [80,"cyan"],[100,"cyan"],[115,"blue"],[132,"purple"],[160,"red"]];
+  function nameFor(h){
+    for (var i=0;i<NAMES.length;i++){ if (h <= NAMES[i][0]) return NAMES[i][1]; }
+    return "red";
+  }
+  // OpenCV HSV(h,255,255) → RGB. 완전 채도로 펴야 어두운 물체도 선명히 표시된다.
+  function hueToRgb(h){
+    var s=1, v=255, c=v*s, x=c*(1-Math.abs(((h/30)%2)-1)), r,g,b;
+    var seg=Math.floor(h/30)%6;
+    if(seg===0){r=c;g=x;b=0;} else if(seg===1){r=x;g=c;b=0;}
+    else if(seg===2){r=0;g=c;b=x;} else if(seg===3){r=0;g=x;b=c;}
+    else if(seg===4){r=x;g=0;b=c;} else {r=c;g=0;b=x;}
+    return [Math.round(r),Math.round(g),Math.round(b)];
+  }
+  function hex(a){ return "#"+a.map(function(n){return n.toString(16).padStart(2,"0");}).join(""); }
+
+  var hue=document.getElementById("hue");
+  function render(){
+    var h=+hue.value, rgb=hueToRgb(h), hx=hex(rgb);
+    document.getElementById("sw").style.backgroundColor=hx;
+    document.getElementById("swlabel").textContent=hx;
+    document.getElementById("kname").textContent=nameFor(h);
+    document.getElementById("khue").textContent=h;
+    document.getElementById("krgb").textContent=rgb.join(", ");
+    document.getElementById("klines").innerHTML=
+      ['RGB '+rgb.join(" "),'LEVEL 90','ON']
+        .map(function(l){return '<span class="wire">'+l+'</span>';}).join("");
+  }
+  hue.addEventListener("input", render); render();
+
+  // 실측 데이터 — host/rainbow_vlm.py, 12색 1바퀴
+  var RUN=[[0,"red","red",3370],[15,"orange","red",3267],[30,"yellow","yellow",3667],
+           [45,"yellow","green",3257],[60,"green","green",3257],[75,"green","green",3261],
+           [90,"cyan","green",3228],[105,"cyan","blue",3197],[120,"blue","blue",3405],
+           [135,"purple","blue",3081],[150,"purple","purple",3640],[165,"red","red",3046]];
+  document.getElementById("tbody").innerHTML = RUN.map(function(r){
+    var hx=hex(hueToRgb(r[0])), exact=r[1]===r[2];
+    return '<tr>'+
+      '<td class="num-c">'+r[0]+'</td>'+
+      '<td><span class="chip" style="background:'+hx+'"></span>'+r[1]+' <span style="color:var(--ink-3)">'+hx+'</span></td>'+
+      '<td>'+r[2]+'</td>'+
+      '<td class="num-c">'+r[3]+' ms</td>'+
+      '<td class="'+(exact?'exact':'near')+'">'+(exact?'정확':'이웃 한 칸')+'</td>'+
+      '</tr>';
+  }).join("");
+</script>
