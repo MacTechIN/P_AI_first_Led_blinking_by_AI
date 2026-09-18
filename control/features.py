@@ -60,7 +60,13 @@ class SceneFeatures:
     """**ROI 안의** 평균 밝기 0-255. 전체 화면 평균이 아니다."""
 
     centroid_x: float | None
-    """지배 색 영역의 가로 중심 0-1 (0=왼쪽). 방향 판단용. 없으면 None."""
+    """지배 색 영역의 가로 중심 0-1, **프레임 전체 기준** (0=왼쪽 끝).
+
+    ROI 안에서 잰 값을 그대로 쓰면 안 된다. ROI 가 화면의 가운데 60% 라면
+    ROI 상대 0.5 는 프레임에서도 0.5 지만, ROI 상대 0.0 은 프레임 0.2 다.
+    색만 볼 때는 드러나지 않다가 위치를 쓰는 순간 틀린다 — 실제로 방향 지시기를
+    만들며 9개 중 4개가 틀렸고, 원인이 이것이었다.
+    """
 
     rgb: tuple[int, int, int] | None = None
     """LED 로 재현할 색. 관측된 원색이 아니라 **색조를 완전 채도로 편 값**이다.
@@ -139,7 +145,11 @@ def extract(
         return SceneFeatures(None, None, coverage, 0.0, brightness, None)
 
     xs = np.nonzero(obj.any(axis=0))[0]
-    centroid_x = float(xs.mean() / obj.shape[1]) if xs.size else None
+    if xs.size:
+        in_roi = float(xs.mean() / obj.shape[1])
+        centroid_x = x0 + in_roi * (x1 - x0)      # ROI 상대 → 프레임 기준
+    else:
+        centroid_x = None
 
     return SceneFeatures(
         color=name,

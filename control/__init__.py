@@ -2,7 +2,9 @@
 
 from .actuator import Actuator, NullActuator, SerialLedActuator
 from .commands import CommandError, LedCommand
+from .direction import DEFAULT_MARGIN, ZONE_HUE, DirectionPolicy, zone_of
 from .evaluate import Case, CaseResult, GoldenError, Report, load_cases, matches
+from .direction import DEFAULT_MARGIN, ZONE_HUE, DirectionPolicy, zone_of
 from .evaluate import run as run_golden
 from .features import SceneFeatures, classify_hue, extract, hue_to_rgb
 from .loop import ControlLoop, StepResult, summarize
@@ -70,4 +72,8 @@ __all__ = [
     "load_cases",
     "matches",
     "run_golden",
+    "DirectionPolicy",
+    "zone_of",
+    "ZONE_HUE",
+    "DEFAULT_MARGIN",
 ]

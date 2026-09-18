@@ -297,3 +297,21 @@ def test_mirror_policy_resets_hold_when_object_leaves():
     p.decide(SceneFeatures(None, None, 0.0, 0.0, 100, None, None))
     after = p.decide(SceneFeatures("blue", 118, 0.4, 200, 120, 0.5, hue_to_rgb(118)))
     assert after.rgb == hue_to_rgb(118)
+
+
+def test_centroid_is_frame_relative_not_roi_relative():
+    """ROI 안에서 잰 위치를 프레임 좌표로 환산해야 한다.
+
+    ROI 가 가운데 60%(0.2~0.8) 이므로, ROI 왼쪽 끝에 있는 물체는 프레임에서는
+    0.2 근처여야 한다. 환산하지 않으면 0.0 으로 나와 방향 판단이 틀린다.
+    """
+    left = SyntheticSource(patch((230, 20, 20), box=(0.22, 0.4, 0.34, 0.6))).open().read().image
+    x = extract(left).centroid_x
+    assert 0.20 < x < 0.36, f"프레임 기준이 아니다: {x}"
+
+
+def test_centroid_matches_the_box_it_was_drawn_in():
+    for lo, hi in [(0.24, 0.36), (0.44, 0.56), (0.64, 0.76)]:
+        img = SyntheticSource(patch((230, 20, 20), box=(lo, 0.4, hi, 0.6))).open().read().image
+        x = extract(img).centroid_x
+        assert abs(x - (lo + hi) / 2) < 0.06, f"기대 {(lo+hi)/2}, 실제 {x}"
