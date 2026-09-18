@@ -87,14 +87,19 @@ host scheduling. `--pattern` is the deliberate exception: it is timed host-side.
 ## Local VLM
 
 `llama.cpp` is built from source with CUDA (`~/llama.cpp`, sm_87) and the models live in
-`~/models`. Qwen2.5-VL-7B Q4_K_M runs, but with almost no headroom — see
-`docs/tech/notes/vlm-on-orin-nano.md` before changing any flag:
+`~/models`. **Use the 3B.** See `docs/tech/notes/vlm-on-orin-nano.md` before changing any
+flag or model:
 
 ```bash
-~/llama.cpp/build/bin/llama-server -m ~/models/Qwen2.5-VL-7B-Instruct-Q4_K_M.gguf \
-  --mmproj ~/models/mmproj-Qwen2.5-VL-7B-Instruct-Q8_0.gguf \
-  -ngl 99 -c 2048 -b 2048 -ub 512 --parallel 1 -ctk q8_0 -ctv q8_0 --port 8080
+~/llama.cpp/build/bin/llama-server -m ~/models/Qwen2.5-VL-3B-Instruct-Q4_K_M.gguf \
+  --mmproj ~/models/mmproj-Qwen2.5-VL-3B-Instruct-Q8_0.gguf \
+  -ngl 99 -c 4096 -b 4096 -ub 512 --parallel 1 -ctk q8_0 -ctv q8_0 --port 8080
 ```
+
+- 3B: 6/6 colours correct, ~950 ms average, ~2 GB still free with the control loop running.
+- **7B loads and then dies on the first request** once the camera and control loop are also
+  running — the image encode buffer has nowhere to go and swap thrashes. Loading
+  successfully is not evidence it will serve; measure with the control loop running.
 
 - **The GUI must stay off** (`multi-user.target`). With GNOME running there is 2.3 GiB
   free instead of 6.4 GiB, and nothing fits.
