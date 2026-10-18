@@ -51,6 +51,7 @@ docs/labs/INSTRUCTOR.md           instructor guide: answers, sticking points, as
 docs/lecture/ppt-outline.md       deck plan in the AX consulting deck's format
 docs/lecture/deck/                the deck itself (62 slides) + its pptxgenjs generators
 docs/31.AX컨설팅방법론_*.pdf      reference deck whose format the outline follows
+docs/제3기AX과정-*.docx           4지선다형 quiz: the instructor's reference, and the P-AI one built from it
 docs/visuals/                     published explainer pages (module 4 colour loop)
 host/rainbow.py                   host-timed hue cycle
 host/rainbow_vlm.py               cycle the LED and score what the VLM calls it
