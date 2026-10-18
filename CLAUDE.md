@@ -31,6 +31,7 @@ control/                          L1/L3: features, policies, actuators, control 
 control/vlm.py                    VS-3: async VLM policy, schema enforcement, validator
 control/capability.py             VS-4: capability contract (declaration -> schema+validator+wire)
 control/evaluate.py               VS-6: golden-set evaluation (regression detection)
+sim/                              S-1: virtual LED + world; closes the loop with no hardware
 control/direction.py              example 1: position -> colour (rule beats the VLM here)
 control/motion.py                 example 2: frame differencing + alarm state machine
 host/measure_direction.py         rule vs VLM on spatial judgement
@@ -40,6 +41,7 @@ host/evaluate.py                  run the golden set; non-zero exit means regres
 capabilities/*.json               device declarations; adding one needs no code
 host/vs4_demo.py                  VS-4 demo: camera -> VLM -> contract -> device
 host/vs2_demo.py                  VS-2 end-to-end demo (camera colour -> LED)
+host/sim_demo.py                  S-1 demo: the whole loop on a laptop, no devices
 host/verify_rgb.py                closed-loop colour check: commanded vs photographed
 tests/                            pytest suite; runs without a camera attached
 Makefile                          build / flash / monitor wrappers around arduino-cli
@@ -80,6 +82,8 @@ make test       # pytest (camera-dependent tests skip themselves)
 ./host/verify_rgb.py --level 40 --lock    # commanded vs photographed colour
 ./host/rainbow.py --period 8              # cycle the LED through the hue wheel
 ./host/vs2_demo.py --source synthetic --dry-run   # no hardware at all
+./host/sim_demo.py                        # closed loop, no devices at all
+./host/sim_demo.py --per-channel-resistor # what correct wiring would look like
 ```
 
 Override the port with `PORT=/dev/ttyACM1 make flash`.
@@ -170,6 +174,27 @@ flag or model:
 - The response schema and `control.vlm.validate` state the same contract twice; a test
   pins them together. They drifted once and the validator then rejected 4 of 5 replies
   while the fallback masked it entirely — watch `policy.stats` (ADR-0009).
+
+## Simulation (S-1)
+
+`sim/` closes the control loop with no devices: `SimActuator` paints the commanded
+colour into the scene and `SimSource` photographs it, so the command shows up in the
+next frame. Both must hold **the same `SimWorld`** — that is the whole mechanism.
+
+The panel reproduces the real wiring by default, not a corrected one: one shared
+resistor (so `RGB 255 255 0` drifts toward red), a white-saturating core, and the
+firmware's integer `dutyFor()`. `shared_resistor`, `polarity_fixed` and `gains` turn
+each quirk off; a simulator that works teaches only the happy path.
+
+The competition model is fitted to three measured points, all on one line
+(green duty 255). **Off that line it is extrapolation and it disagrees with the rig:
+3/6 colours where the calibrated hardware gets 6/6.** Do not silently re-tune the
+coefficients — `tests/test_sim.py::MEASURED` pins them, and
+`docs/tech/notes/sim-led-model.md` explains what measurement would close the gap.
+
+Moving the LED into the ROI does **not** by itself make the loop eat its own output —
+measured, not assumed. It needs `--led-radius 60`+ as well; below that the saturated
+core is filtered by the saturation threshold and the rim loses on area.
 
 ## Capability contract (VS-4)
 
