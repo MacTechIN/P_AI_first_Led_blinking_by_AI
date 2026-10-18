@@ -13,10 +13,11 @@
 from .actuator import SimActuator
 from .faults import FAULTS, Fault, Rig, build_rig
 from .panel import LedPanel
+from .scenario import Scenario, ScenarioError, load_all as load_scenarios
 from .source import SimSource
 from .world import SimWorld
 
 __all__ = [
-    "FAULTS", "Fault", "LedPanel", "Rig", "SimActuator", "SimSource", "SimWorld",
-    "build_rig",
+    "FAULTS", "Fault", "LedPanel", "Rig", "Scenario", "ScenarioError", "SimActuator",
+    "SimSource", "SimWorld", "build_rig", "load_scenarios",
 ]

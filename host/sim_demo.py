@@ -3,6 +3,7 @@
 
     ./host/sim_demo.py                     # 색지가 바뀌고 LED 가 따라간다
     ./host/sim_demo.py --no-preview        # 터미널 그림 없이 로그만
+    ./host/sim_demo.py --scenario dusk     # 장면 대본대로 움직인다 (S-2)
     ./host/sim_demo.py --fault list        # 넣을 수 있는 결함 목록
     ./host/sim_demo.py --fault random --seed 7    # 무엇이 켜졌는지 알려주지 않는다
     ./host/sim_demo.py --fault random --seed 7 --reveal   # 정답
@@ -69,6 +70,8 @@ def main() -> None:
     p.add_argument("--cards", default="red,green,blue,yellow,none")
     p.add_argument("--dwell", type=int, default=12, help="색지 한 장을 몇 스텝 유지할지")
     p.add_argument("--policy", choices=["mirror", "rule", "vlm"], default="mirror")
+    p.add_argument("--scenario", metavar="NAME",
+                   help="scenarios/*.json 대본을 재생한다 (--cards 대신)")
     p.add_argument("--fault", metavar="NAME",
                    help="결함을 하나 넣는다. 'list' 로 목록, 'random' 으로 무작위")
     p.add_argument("--seed", type=int, default=0)
@@ -92,6 +95,18 @@ def main() -> None:
             print(f"  {f.name:16s} [{f.layer}]  {f.symptom}")
         print("\n--fault random --seed N 으로 무작위 주입. 정답은 --reveal.")
         return
+
+    scenario = None
+    if args.scenario:
+        from sim.scenario import ScenarioError, load_all
+        try:
+            found = load_all()
+        except ScenarioError as e:
+            p.error(str(e))
+        if args.scenario not in found:
+            p.error(f"모르는 대본: {args.scenario}  (가능: {', '.join(found)})")
+        scenario = found[args.scenario]
+        args.steps = int(scenario.seconds * (args.fps or 10.0))
 
     cards = [c.strip() for c in args.cards.split(",") if c.strip()]
     unknown = [c for c in cards if c not in CARDS]
@@ -124,6 +139,8 @@ def main() -> None:
     wiring = "채널별 저항" if args.per_channel_resistor else "공통 저항 (실물)"
     print(f"정책 {policy.name}   배선 {wiring}   "
           f"LED {'ROI 안' if args.led_in_roi else 'ROI 밖'}   {args.steps} 스텝")
+    if scenario is not None:
+        print(f"대본 {scenario.describe()}\n  {scenario.note}")
     if rig.fault is not None:
         print(f"\n이 장비에는 문제가 하나 있다고 신고됐습니다.\n  {rig.briefing()}\n"
               f"  어느 계층인지, 무엇 때문인지 측정으로 밝히십시오.")
@@ -139,8 +156,12 @@ def main() -> None:
         if isinstance(policy, VlmPolicy):
             policy.start()
         for i in range(args.steps):
-            card = cards[0] if args.still else cards[(i // max(1, args.dwell)) % len(cards)]
-            world.set_card(CARDS[card])
+            if scenario is not None:
+                card = scenario.name
+                scenario.apply(world, i / (args.fps or 10.0))
+            else:
+                card = cards[0] if args.still else cards[(i // max(1, args.dwell)) % len(cards)]
+                world.set_card(CARDS[card])
 
             try:
                 r = loop.step()

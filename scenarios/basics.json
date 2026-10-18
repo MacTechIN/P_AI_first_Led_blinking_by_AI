@@ -1,0 +1,15 @@
+{
+  "name": "basics",
+  "seconds": 24,
+  "note": "30분 실습 1단계 — 루프가 돈다는 것만 본다. 색지가 바뀌면 LED 가 따라온다.",
+  "events": [
+    { "t": 0,  "card": "red" },
+    { "t": 8,  "card": "green" },
+    { "t": 16, "card": "blue" }
+  ],
+  "expect": [
+    { "at": 4,  "color": "red",   "note": "빨강은 경고라 점멸한다" },
+    { "at": 12, "color": "green" },
+    { "at": 20, "color": "blue" }
+  ]
+}

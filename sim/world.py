@@ -50,6 +50,12 @@ class SimWorld:
     led_radius_px: int = 24
     panel: LedPanel = field(default_factory=LedPanel)
 
+    light: float = 1.0
+    """조명 배율. 장면 대본이 시간에 따라 바꾼다 (S-2)."""
+
+    mover: tuple[tuple[int, int, int], float] | None = None
+    """움직이는 물체 (색, 가로 위치 0~1). 없으면 None."""
+
     clock: Callable[[], float] = time.monotonic
     """시간 공급원. 시험에서는 고정 함수를 넣어 점멸 위상을 결정적으로 만든다."""
 
@@ -76,7 +82,24 @@ class SimWorld:
 
     def render(self, seq: int, t: float | None = None) -> np.ndarray:
         img = self._background()(seq)
-        return self.paint_led(img, self.emitted(t))
+        if self.mover is not None:
+            img = self._paint_mover(img, *self.mover)
+        img = self.paint_led(img, self.emitted(t))
+        if self.light != 1.0:
+            img = np.clip(img.astype(np.float32) * self.light, 0, 255).astype(np.uint8)
+        return img
+
+    def _paint_mover(
+        self, img: np.ndarray, rgb: tuple[int, int, int], x: float
+    ) -> np.ndarray:
+        """가로로 지나가는 물체. 위치 판단 실습이 이것을 본다."""
+        h, w = img.shape[:2]
+        half = 0.09
+        x0 = int(max(0.0, min(1.0 - 2 * half, x - half)) * w)
+        x1 = min(w, x0 + int(2 * half * w))
+        y0, y1 = int(0.36 * h), int(0.64 * h)
+        img[y0:y1, x0:x1] = np.asarray(rgb, dtype=np.uint8)
+        return img
 
     def paint_led(self, img: np.ndarray, emitted: tuple[int, int, int]) -> np.ndarray:
         """LED 를 장면에 그려 넣는다. 중심은 포화해 흰색이 된다."""
@@ -109,6 +132,7 @@ class SimWorld:
         return {
             "size": self.size,
             "card_rgb": self.card_rgb,
+            "light": self.light,
             "led_at": self.led_at,
             "commands": self.commands,
             **self.panel.describe(),

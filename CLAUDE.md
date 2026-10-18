@@ -31,7 +31,8 @@ control/                          L1/L3: features, policies, actuators, control 
 control/vlm.py                    VS-3: async VLM policy, schema enforcement, validator
 control/capability.py             VS-4: capability contract (declaration -> schema+validator+wire)
 control/evaluate.py               VS-6: golden-set evaluation (regression detection)
-sim/                              S-1/S-3: virtual LED + world + fault injection (no hardware)
+sim/                              S-1/S-2/S-3: virtual LED, scene scripts, fault injection
+scenarios/*.json                  scene scripts: what happens when, and what is correct then
 control/direction.py              example 1: position -> colour (rule beats the VLM here)
 control/motion.py                 example 2: frame differencing + alarm state machine
 host/measure_direction.py         rule vs VLM on spatial judgement
@@ -41,7 +42,8 @@ host/evaluate.py                  run the golden set; non-zero exit means regres
 capabilities/*.json               device declarations; adding one needs no code
 host/vs4_demo.py                  VS-4 demo: camera -> VLM -> contract -> device
 host/vs2_demo.py                  VS-2 end-to-end demo (camera colour -> LED)
-host/sim_demo.py                  S-1/S-3 demo: the whole loop on a laptop, plus faults
+host/sim_demo.py                  sim demo: the whole loop on a laptop, plus scripts and faults
+host/scenario_check.py            play a scene script and score it; non-zero exit means a miss
 host/verify_rgb.py                closed-loop colour check: commanded vs photographed
 tests/                            pytest suite; runs without a camera attached
 Makefile                          build / flash / monitor wrappers around arduino-cli
@@ -83,6 +85,8 @@ make test       # pytest (camera-dependent tests skip themselves)
 ./host/rainbow.py --period 8              # cycle the LED through the hue wheel
 ./host/vs2_demo.py --source synthetic --dry-run   # no hardware at all
 ./host/sim_demo.py                        # closed loop, no devices at all
+./host/sim_demo.py --scenario dusk        # play a scene script
+./host/scenario_check.py                  # scenes double as the golden set
 ./host/sim_demo.py --fault list           # the eight recorded failures
 ./host/sim_demo.py --fault random --seed 7   # the clinic: symptom only, no answer
 ```
@@ -205,7 +209,15 @@ produces its recorded symptom, not merely that it switches on. Two gotchas it pi
 `polarity` must also reset the gains, because the recorded cyan was seen before the
 gain calibration existed; and a dead server and a drifted contract both land in
 `stats["failed"]`, so what separates them is failing **all** requests versus **some**.
-The clinic is `docs/labs/08-fault-clinic.md`.
+The clinic is `docs/labs/08-fault-clinic.md`, and it is deliberately **30 minutes** —
+run it, break it, diagnose once, stop. It is a concept lab, not a workshop.
+
+Scene scripts (`scenarios/*.json`) declare what happens when **and what is correct
+then**, so a scene is also a regression test (`host/scenario_check.py`). They are
+validated at load, not mid-run — a scenario whose colour name is wrong must fail when
+read. They also have a pinned blind spot: `no-hysteresis` passes 9/9 because the
+expectations state what is seen, never how often it is sent. That is the golden set's
+2/5 lesson again, and a test holds it in place.
 
 ## Capability contract (VS-4)
 

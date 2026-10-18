@@ -1,0 +1,16 @@
+{
+  "name": "dusk",
+  "seconds": 24,
+  "note": "30분 실습 2단계 — 색지는 그대로인데 조명만 꺼진다. 판단이 언제 무너지는가.",
+  "events": [
+    { "t": 0,  "card": "green", "light": 1.0 },
+    { "t": 6,  "light": 0.6 },
+    { "t": 12, "light": 0.35 },
+    { "t": 18, "light": 0.15 }
+  ],
+  "expect": [
+    { "at": 4,  "color": "green", "note": "밝을 때는 맞힌다" },
+    { "at": 10, "color": "green", "note": "조금 어두워도 색조는 버틴다" },
+    { "at": 22, "color": null,    "note": "너무 어두우면 색을 믿지 않는다 — 이것이 정답이다" }
+  ]
+}
