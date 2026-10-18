@@ -61,8 +61,10 @@ Physical AI 의 핵심 긴장이다. AI 판단은 초 단위, 물리 제어는 �
 
 ## 발표용 자료
 
-[`lecture/ppt-outline.md`](lecture/ppt-outline.md) — 180분 세미나 PPT 구성 교안.
-4부 54슬라이드, 모든 수치가 실측값이며 출처를 각주로 단다. 60/90분 축약판 포함.
+[`lecture/ppt-outline.md`](lecture/ppt-outline.md) — PPT 교안 (70슬라이드).
+`31.AX컨설팅방법론_통합교재` 의 포맷을 따른다 — 슬라이드 마스터 5종,
+Phase·Step·산출물 체계, 워크시트/작성예시 쌍. **P-AI 5 Phase 11 Step 22 산출물**을
+새로 정의했고, 모든 수치는 이 기계에서 잰 실측값이다.
 
 ## 강사용 자료
 
@@ -150,7 +152,8 @@ Physical AI 의 핵심 긴장이다. AI 판단은 초 단위, 물리 제어는 �
 | **연습 문제** | ✅ 모듈 0~5 | 모듈당 3문항 |
 | 강사용 해설·정답 | ✅ `labs/INSTRUCTOR.md` | 해답 18문항 + 막힐 지점 |
 | 시각 자료 | 🔶 모듈 4 | `visuals/vlm-colour-loop.html` |
-| 발표 교안 (PPT) | ✅ `lecture/ppt-outline.md` | 54슬라이드 + 축약판 |
+| 발표 교안 (PPT) | ✅ `lecture/ppt-outline.md` | 70슬라이드 · 참조 교재 포맷 |
+| 실습 워크시트 (PPT용) | ✅ Chapter 5 (S60–S66) | 워크시트 5종 + 작성예시 |
 | 영상 시연 | ❌ 없음 | 다음 단계 |
 | 모듈 6 실습서 | 🔶 절반 검증 | 워치독·평가 ✅ / 모터·센서 ⏸ |
 | 실제 수업 검증 | ❌ 없음 | 한 번 가르쳐 보고 보완 |

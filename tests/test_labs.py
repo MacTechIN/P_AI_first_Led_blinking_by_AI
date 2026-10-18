@@ -249,18 +249,39 @@ def test_lecture_outline_citations_resolve():
         assert Path(ref).exists() or (Path("docs") / ref).exists(), f"없는 출처: {ref}"
 
 
-def test_lecture_outline_covers_all_four_parts():
+def test_lecture_outline_covers_all_chapters():
     from pathlib import Path
 
     text = Path("docs/lecture/ppt-outline.md").read_text()
-    for part in ("1부 — 패러다임 시프트", "2부 — 아키텍처 해부",
-                 "3부 — 실습", "4부 — 실전 적용"):
-        assert part in text, f"{part} 가 없다"
+    for ch in ("Chapter 1 — 패러다임 시프트", "Chapter 2 — P-AI 아키텍처 해부",
+               "Chapter 3 — P-AI 실습", "Chapter 4 — P-AI 실전 적용",
+               "Chapter 5 — 실습 워크시트"):
+        assert ch in text, f"{ch} 가 없다"
 
 
-def test_lecture_outline_keeps_the_failure_slides():
+def test_lecture_outline_follows_the_reference_format():
+    """참조 교재(AX 컨설팅방법론)의 구조 요소를 갖추고 있어야 한다."""
+    from pathlib import Path
+
+    text = Path("docs/lecture/ppt-outline.md").read_text()
+    for element in ("M1 — 표지", "M2 — Chapter 간지", "M3 — 개념 슬라이드",
+                    "M4 — 산출물 슬라이드", "M5 — 워크시트"):
+        assert element in text, f"마스터 {element} 정의가 없다"
+    assert "5 Phase · 11 Step · 22 산출물" in text
+
+
+def test_lecture_outline_marks_the_failure_slides():
+    """실패 사례 슬라이드가 '빼면 안 되는 것'으로 표시돼 있어야 한다."""
+    from pathlib import Path
+
+    text = Path("docs/lecture/ppt-outline.md").read_text()
+    assert "빼면 안 되는 슬라이드" in text
+    assert text.count("⭐") >= 8
+
+
+def test_lecture_outline_keeps_failures_in_the_short_version():
     """축약판에서도 실패 사례를 빼지 않는다는 약속을 고정한다."""
     from pathlib import Path
 
     text = Path("docs/lecture/ppt-outline.md").read_text()
-    assert "S9(7B 사망)와 S28(위치 실패)은 빼지 않는다" in text
+    assert "S8(7B 사망)과 S26(위치 실패)은 빼지 않는다" in text
