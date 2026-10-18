@@ -46,6 +46,7 @@ Makefile                          build / flash / monitor wrappers around arduin
 docs/project_difinition.md        project definition (source of requirements)
 docs/development_plan.md          vertical-slice plan; start here for what to build next
 docs/curriculum.md                what this is ultimately for: a teaching curriculum
+docs/simulation_plan.md           how many learners practise on one rig (sim tiers, fault injection)
 docs/labs/                        module-by-module lab guides (parts list, steps, exercises)
 docs/labs/INSTRUCTOR.md           instructor guide: answers, sticking points, assessment
 docs/lecture/ppt-outline.md       deck plan in the AX consulting deck's format
