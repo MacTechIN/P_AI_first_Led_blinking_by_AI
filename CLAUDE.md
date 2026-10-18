@@ -48,7 +48,8 @@ docs/development_plan.md          vertical-slice plan; start here for what to bu
 docs/curriculum.md                what this is ultimately for: a teaching curriculum
 docs/labs/                        module-by-module lab guides (parts list, steps, exercises)
 docs/labs/INSTRUCTOR.md           instructor guide: answers, sticking points, assessment
-docs/lecture/ppt-outline.md       70-slide deck plan in the AX consulting deck's format
+docs/lecture/ppt-outline.md       deck plan in the AX consulting deck's format
+docs/lecture/deck/                the deck itself (62 slides) + its pptxgenjs generators
 docs/31.AX컨설팅방법론_*.pdf      reference deck whose format the outline follows
 docs/visuals/                     published explainer pages (module 4 colour loop)
 host/rainbow.py                   host-timed hue cycle
