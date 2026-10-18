@@ -59,6 +59,11 @@ Physical AI 의 핵심 긴장이다. AI 판단은 초 단위, 물리 제어는 �
 
 ---
 
+## 발표용 자료
+
+[`lecture/ppt-outline.md`](lecture/ppt-outline.md) — 180분 세미나 PPT 구성 교안.
+4부 54슬라이드, 모든 수치가 실측값이며 출처를 각주로 단다. 60/90분 축약판 포함.
+
 ## 강사용 자료
 
 [`labs/INSTRUCTOR.md`](labs/INSTRUCTOR.md) — 연습 문제 해답, 학습자가 막힐 지점,
@@ -145,6 +150,7 @@ Physical AI 의 핵심 긴장이다. AI 판단은 초 단위, 물리 제어는 �
 | **연습 문제** | ✅ 모듈 0~5 | 모듈당 3문항 |
 | 강사용 해설·정답 | ✅ `labs/INSTRUCTOR.md` | 해답 18문항 + 막힐 지점 |
 | 시각 자료 | 🔶 모듈 4 | `visuals/vlm-colour-loop.html` |
+| 발표 교안 (PPT) | ✅ `lecture/ppt-outline.md` | 54슬라이드 + 축약판 |
 | 영상 시연 | ❌ 없음 | 다음 단계 |
 | 모듈 6 실습서 | 🔶 절반 검증 | 워치독·평가 ✅ / 모터·센서 ⏸ |
 | 실제 수업 검증 | ❌ 없음 | 한 번 가르쳐 보고 보완 |

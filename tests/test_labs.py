@@ -227,3 +227,40 @@ def test_lab07_firmware_declares_a_watchdog():
     assert 'WATCHDOG ' in sketch
     assert "enterSafeState" in sketch
     assert "watchdogMs = 0" in sketch, "기본값은 꺼져 있어야 한다"
+
+
+# --- 발표 교안 (docs/lecture/ppt-outline.md) ---
+
+
+def test_lecture_outline_citations_resolve():
+    """교안이 인용한 출처가 실제로 있어야 한다.
+
+    발표 중에 "저 자료 어디 있나요" 를 받고 못 찾으면 신뢰를 잃는다.
+    """
+    import re
+    from pathlib import Path
+
+    text = Path("docs/lecture/ppt-outline.md").read_text()
+    refs = set(re.findall(
+        r"`(docs/[\w/\-\.]+|tech/notes/[\w\-\.]+|labs/[\w\-\.]+|visuals/[\w\-\.]+)`",
+        text))
+    assert refs, "인용이 하나도 없다"
+    for ref in refs:
+        assert Path(ref).exists() or (Path("docs") / ref).exists(), f"없는 출처: {ref}"
+
+
+def test_lecture_outline_covers_all_four_parts():
+    from pathlib import Path
+
+    text = Path("docs/lecture/ppt-outline.md").read_text()
+    for part in ("1부 — 패러다임 시프트", "2부 — 아키텍처 해부",
+                 "3부 — 실습", "4부 — 실전 적용"):
+        assert part in text, f"{part} 가 없다"
+
+
+def test_lecture_outline_keeps_the_failure_slides():
+    """축약판에서도 실패 사례를 빼지 않는다는 약속을 고정한다."""
+    from pathlib import Path
+
+    text = Path("docs/lecture/ppt-outline.md").read_text()
+    assert "S9(7B 사망)와 S28(위치 실패)은 빼지 않는다" in text

@@ -48,6 +48,7 @@ docs/development_plan.md          vertical-slice plan; start here for what to bu
 docs/curriculum.md                what this is ultimately for: a teaching curriculum
 docs/labs/                        module-by-module lab guides (parts list, steps, exercises)
 docs/labs/INSTRUCTOR.md           instructor guide: answers, sticking points, assessment
+docs/lecture/ppt-outline.md       180-min seminar deck plan; every figure is a measured one
 docs/visuals/                     published explainer pages (module 4 colour loop)
 host/rainbow.py                   host-timed hue cycle
 host/rainbow_vlm.py               cycle the LED and score what the VLM calls it
