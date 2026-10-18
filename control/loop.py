@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Callable
 
 from perception import FrameSource
 
@@ -49,6 +49,12 @@ class ControlLoop:
     source: FrameSource
     policy: Policy
     actuator: Actuator
+    extractor: Callable[..., SceneFeatures] = extract
+    """특징 추출기. 기본값이 곧 정상 동작이다.
+
+    갈아끼울 수 있게 둔 이유는 하나다 — ROI 를 잘못 잡으면 멀쩡한 장치가
+    고장난 것처럼 보이는데, 그 상황을 실습에서 재현하려면 여기가 열려 있어야 한다.
+    """
     _seq: int = field(default=0, init=False)
     _last: LedCommand | None = field(default=None, init=False)
 
@@ -60,7 +66,7 @@ class ControlLoop:
         t["capture"] = (time.perf_counter() - t0) * 1000
 
         t0 = time.perf_counter()
-        features = extract(obs.image)
+        features = self.extractor(obs.image)
         t["extract"] = (time.perf_counter() - t0) * 1000
 
         t0 = time.perf_counter()

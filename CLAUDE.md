@@ -31,7 +31,7 @@ control/                          L1/L3: features, policies, actuators, control 
 control/vlm.py                    VS-3: async VLM policy, schema enforcement, validator
 control/capability.py             VS-4: capability contract (declaration -> schema+validator+wire)
 control/evaluate.py               VS-6: golden-set evaluation (regression detection)
-sim/                              S-1: virtual LED + world; closes the loop with no hardware
+sim/                              S-1/S-3: virtual LED + world + fault injection (no hardware)
 control/direction.py              example 1: position -> colour (rule beats the VLM here)
 control/motion.py                 example 2: frame differencing + alarm state machine
 host/measure_direction.py         rule vs VLM on spatial judgement
@@ -41,7 +41,7 @@ host/evaluate.py                  run the golden set; non-zero exit means regres
 capabilities/*.json               device declarations; adding one needs no code
 host/vs4_demo.py                  VS-4 demo: camera -> VLM -> contract -> device
 host/vs2_demo.py                  VS-2 end-to-end demo (camera colour -> LED)
-host/sim_demo.py                  S-1 demo: the whole loop on a laptop, no devices
+host/sim_demo.py                  S-1/S-3 demo: the whole loop on a laptop, plus faults
 host/verify_rgb.py                closed-loop colour check: commanded vs photographed
 tests/                            pytest suite; runs without a camera attached
 Makefile                          build / flash / monitor wrappers around arduino-cli
@@ -83,7 +83,8 @@ make test       # pytest (camera-dependent tests skip themselves)
 ./host/rainbow.py --period 8              # cycle the LED through the hue wheel
 ./host/vs2_demo.py --source synthetic --dry-run   # no hardware at all
 ./host/sim_demo.py                        # closed loop, no devices at all
-./host/sim_demo.py --per-channel-resistor # what correct wiring would look like
+./host/sim_demo.py --fault list           # the eight recorded failures
+./host/sim_demo.py --fault random --seed 7   # the clinic: symptom only, no answer
 ```
 
 Override the port with `PORT=/dev/ttyACM1 make flash`.
@@ -195,6 +196,16 @@ coefficients — `tests/test_sim.py::MEASURED` pins them, and
 Moving the LED into the ROI does **not** by itself make the loop eat its own output —
 measured, not assumed. It needs `--led-radius 60`+ as well; below that the saturated
 core is filtered by the saturation threshold and the rim loses on area.
+
+`sim/faults.py` injects eight failures this repo actually hit, one per flag, across the
+sensor / feature / decision / actuation / model layers. The point is the diagnosis, so
+`Rig.briefing()` gives the symptom and never the cause — `--reveal` and reading
+`sim/faults.py` are both answer keys. `tests/test_faults.py` checks each fault still
+produces its recorded symptom, not merely that it switches on. Two gotchas it pins:
+`polarity` must also reset the gains, because the recorded cyan was seen before the
+gain calibration existed; and a dead server and a drifted contract both land in
+`stats["failed"]`, so what separates them is failing **all** requests versus **some**.
+The clinic is `docs/labs/08-fault-clinic.md`.
 
 ## Capability contract (VS-4)
 

@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
-"""S-1 데모 — 장비 하나 없이 제어 루프를 닫는다.
+"""S-1/S-3 데모 — 장비 하나 없이 제어 루프를 닫고, 거기에 결함을 넣는다.
 
     ./host/sim_demo.py                     # 색지가 바뀌고 LED 가 따라간다
     ./host/sim_demo.py --no-preview        # 터미널 그림 없이 로그만
+    ./host/sim_demo.py --fault list        # 넣을 수 있는 결함 목록
+    ./host/sim_demo.py --fault random --seed 7    # 무엇이 켜졌는지 알려주지 않는다
+    ./host/sim_demo.py --fault random --seed 7 --reveal   # 정답
     ./host/sim_demo.py --led-in-roi --led-radius 70 --cards green,none
                                            # 색지를 치워도 초록이라고 우긴다
     ./host/sim_demo.py --per-channel-resistor   # 올바른 배선이었다면
@@ -24,8 +27,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import numpy as np
 
-from control import ColorRulePolicy, ControlLoop, MirrorColorPolicy, summarize
-from sim import LedPanel, SimActuator, SimSource, SimWorld
+from control import ColorRulePolicy, MirrorColorPolicy, summarize
+from control.vlm import VlmPolicy
+from perception.health import FrameHealthError
+from sim import FAULTS, LedPanel, SimActuator, SimSource, SimWorld, build_rig
 
 CARDS: dict[str, tuple[int, int, int]] = {
     "red": (220, 40, 40),
@@ -63,7 +68,13 @@ def main() -> None:
     p.add_argument("--steps", type=int, default=60)
     p.add_argument("--cards", default="red,green,blue,yellow,none")
     p.add_argument("--dwell", type=int, default=12, help="색지 한 장을 몇 스텝 유지할지")
-    p.add_argument("--policy", choices=["mirror", "rule"], default="mirror")
+    p.add_argument("--policy", choices=["mirror", "rule", "vlm"], default="mirror")
+    p.add_argument("--fault", metavar="NAME",
+                   help="결함을 하나 넣는다. 'list' 로 목록, 'random' 으로 무작위")
+    p.add_argument("--seed", type=int, default=0)
+    p.add_argument("--reveal", action="store_true", help="끝나고 정답을 보여준다")
+    p.add_argument("--still", action="store_true",
+                   help="색지를 바꾸지 않는다 — 정지 장면에서 전송 빈도를 센다")
     p.add_argument("--fps", type=float, default=12.0)
     p.add_argument("--no-preview", action="store_true")
     p.add_argument("--led-in-roi", action="store_true",
@@ -75,10 +86,24 @@ def main() -> None:
     p.add_argument("--save", metavar="DIR", help="프레임을 PNG 로 저장")
     args = p.parse_args()
 
+    if args.fault == "list":
+        print("넣을 수 있는 결함:\n")
+        for f in FAULTS.values():
+            print(f"  {f.name:16s} [{f.layer}]  {f.symptom}")
+        print("\n--fault random --seed N 으로 무작위 주입. 정답은 --reveal.")
+        return
+
     cards = [c.strip() for c in args.cards.split(",") if c.strip()]
     unknown = [c for c in cards if c not in CARDS]
     if unknown:
         p.error(f"모르는 색지: {', '.join(unknown)}  (가능: {', '.join(CARDS)})")
+
+    fault = args.fault
+    if fault == "random":
+        import random
+        fault = random.Random(args.seed).choice(sorted(FAULTS))
+    if fault is not None and fault not in FAULTS:
+        p.error(f"모르는 결함: {fault}  (목록: --fault list)")
 
     panel = LedPanel(shared_resistor=not args.per_channel_resistor)
     world = SimWorld(panel=panel, led_radius_px=args.led_radius)
@@ -86,8 +111,10 @@ def main() -> None:
         world.led_at = (0.5, 0.5)
     world.set_card(CARDS[cards[0]])
 
-    policy = MirrorColorPolicy() if args.policy == "mirror" else ColorRulePolicy()
-    actuator = SimActuator(world)
+    rig = build_rig(fault, policy=args.policy, world=world, seed=args.seed)
+    if fault is None and args.policy == "rule":
+        rig.policy = ColorRulePolicy()
+    policy, actuator = rig.policy, rig.actuator
 
     save_dir = Path(args.save) if args.save else None
     if save_dir:
@@ -97,18 +124,29 @@ def main() -> None:
     wiring = "채널별 저항" if args.per_channel_resistor else "공통 저항 (실물)"
     print(f"정책 {policy.name}   배선 {wiring}   "
           f"LED {'ROI 안' if args.led_in_roi else 'ROI 밖'}   {args.steps} 스텝")
+    if rig.fault is not None:
+        print(f"\n이 장비에는 문제가 하나 있다고 신고됐습니다.\n  {rig.briefing()}\n"
+              f"  어느 계층인지, 무엇 때문인지 측정으로 밝히십시오.")
     if not show:
         print("(미리보기 꺼짐)")
     print()
 
     results = []
-    with SimSource(world, fps=args.fps) as src:
-        loop = ControlLoop(src, policy, actuator)
+    health_error: str | None = None
+    rig.source._fps = args.fps
+    with rig.source as src:
+        loop = rig.loop()
+        if isinstance(policy, VlmPolicy):
+            policy.start()
         for i in range(args.steps):
-            card = cards[(i // max(1, args.dwell)) % len(cards)]
+            card = cards[0] if args.still else cards[(i // max(1, args.dwell)) % len(cards)]
             world.set_card(CARDS[card])
 
-            r = loop.step()
+            try:
+                r = loop.step()
+            except FrameHealthError as e:
+                health_error = str(e)
+                break
             results.append(r)
 
             if save_dir:
@@ -131,6 +169,17 @@ def main() -> None:
             else:
                 print(r.describe())
 
+    if isinstance(policy, VlmPolicy):
+        policy.stop()
+
+    if health_error:
+        print(f"\n건전성 검사가 프레임을 막았습니다 ({len(results)} 스텝에서 중단)")
+        print(f"  {health_error}")
+        print("\n장치가 열리고 프레임도 왔다는 것은 작동한다는 증거가 아닙니다.")
+        if args.reveal:
+            print("\n" + rig.reveal())
+        return
+
     s = summarize(results)
     print(f"\n{len(results)} 스텝 · 평균 {s['total_ms']:.1f}ms "
           f"(촬영 {s['capture_ms']:.1f} + 특징 {s['extract_ms']:.1f} "
@@ -142,8 +191,20 @@ def main() -> None:
         print("\n혼합색을 명령하면 발광이 강한 다이 쪽으로 밀립니다. 공통 저항 하나를"
               "\n셋이 나눠 쓰기 때문이며, 실물도 그랬습니다. 모델의 한계와 실물과의"
               "\n차이는 docs/tech/notes/sim-led-model.md 에 적어 두었습니다.")
+    if isinstance(policy, VlmPolicy):
+        st = policy.stats
+        print(f"VLM  요청 {st['requests']}  성공 {st['ok']}  "
+              f"거부 {st['invalid']}  실패 {st['failed']}  판단없음 {st['none']}")
+        d = policy.last_decision
+        print(f"     마지막 판단 {d.describe() if d else '아직 없음'}")
+
     if save_dir:
         print(f"프레임 저장: {save_dir}/")
+
+    if args.reveal:
+        print("\n" + rig.reveal())
+    elif rig.fault is not None:
+        print("\n정답은 --reveal 로 확인합니다.")
 
 
 if __name__ == "__main__":
