@@ -10,7 +10,7 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
-from perception import FrameSource
+from perception import FrameSource, Observation
 
 from .actuator import Actuator
 from .commands import LedCommand
@@ -25,6 +25,12 @@ class StepResult:
     timings_ms: dict[str, float]
     seq: int
     changed: bool
+    observation: "Observation | None" = None
+    """판단의 근거가 된 프레임.
+
+    없으면 **재현할 수 없다.** 이상했던 순간을 골든셋 사례로 되돌리려면
+    그때 무엇을 보고 있었는지가 함께 남아야 한다 (모듈 6).
+    """
 
     @property
     def total_ms(self) -> float:
@@ -77,10 +83,12 @@ class ControlLoop:
         t0 = time.perf_counter()
         if changed:
             self.actuator.apply(command)
+        else:
+            self.actuator.poll()     # 바뀌지 않아도 살아 있다고 알린다
         t["actuate"] = (time.perf_counter() - t0) * 1000
 
         self._last = command
-        result = StepResult(features, command, t, self._seq, changed)
+        result = StepResult(features, command, t, self._seq, changed, obs)
         self._seq += 1
         return result
 

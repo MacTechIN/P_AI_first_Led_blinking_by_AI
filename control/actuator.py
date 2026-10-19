@@ -16,6 +16,18 @@ class Actuator(ABC):
     @abstractmethod
     def apply(self, cmd: LedCommand) -> None: ...
 
+    def poll(self) -> None:
+        """매 스텝 불린다. 명령이 바뀌지 않아도.
+
+        `ControlLoop` 은 명령이 **바뀔 때만** 구동한다(ADR-0007). 정지한 장면에서는
+        아무것도 나가지 않고, 워치독이 켜져 있으면 **호스트가 멀쩡한데도 트립한다.**
+        시뮬레이터에 워치독을 넣고 나서야 드러났다 — 워치독이 기본으로 꺼져 있어
+        지금껏 아무도 밟지 않았을 뿐이다.
+
+        그래서 살아 있다는 신호를 보낼 자리가 따로 필요하다. 기본은 아무것도
+        하지 않는다.
+        """
+
     def close(self) -> None:
         pass
 
@@ -48,8 +60,10 @@ class SerialLedActuator(Actuator):
     비교해 달라진 부분만 보낸다.
     """
 
-    def __init__(self, port: str = "/dev/ttyACM0", *, verbose: bool = False) -> None:
+    def __init__(self, port: str = "/dev/ttyACM0", *, verbose: bool = False,
+                 keepalive_ms: int = 0) -> None:
         import sys
+        import time
         from pathlib import Path
 
         sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "host"))
@@ -57,11 +71,32 @@ class SerialLedActuator(Actuator):
 
         self._ard = Arduino(port, verbose=verbose)
         self._last: LedCommand | None = None
+        self.keepalive_ms = keepalive_ms
+        """0 이면 끔. 워치독을 켠 장치에서는 **워치독 주기보다 짧게** 둬야 한다.
+
+        `PING` 을 쓴다 — 워치독을 먹이지만 트립은 풀지 않는 명령이다. 트립을
+        푸는 것은 출력을 구동하는 명령뿐이어야 한다 (펌웨어 주석 참조).
+        """
+        self._last_sent = time.monotonic()
 
     def apply(self, cmd: LedCommand) -> None:
+        import time
+
         for line in self._diff(cmd):
             self._ard.send(line)
         self._last = cmd
+        self._last_sent = time.monotonic()
+
+    def poll(self) -> None:
+        """워치독이 켜져 있으면 살아 있다는 신호를 보낸다."""
+        if not self.keepalive_ms:
+            return
+        import time
+
+        now = time.monotonic()
+        if (now - self._last_sent) * 1000.0 >= self.keepalive_ms:
+            self._ard.send("PING")
+            self._last_sent = now
 
     def _diff(self, cmd: LedCommand) -> list[str]:
         if self._last is None:

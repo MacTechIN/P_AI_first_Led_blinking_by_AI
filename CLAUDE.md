@@ -38,8 +38,12 @@ teams/*/policy.py                 submissions; the extra ones are deliberate bad
 tapes/*.json                      recorded real VLM answers; replay needs no server (S-4)
 control/direction.py              example 1: position -> colour (rule beats the VLM here)
 control/motion.py                 example 2: frame differencing + alarm state machine
+control/scene.py                  example 3: the question no rule can answer
+control/decisionlog.py            log a decision with its frame; promote it to a golden case
 host/measure_direction.py         rule vs VLM on spatial judgement
 host/measure_motion.py            measure the noise floor before picking a threshold
+host/measure_scene.py             same frame, same question, N times — with and without an exit
+host/promote_case.py              turn a logged moment into a golden case
 golden/                           golden set: images + expected decisions
 host/evaluate.py                  run the golden set; non-zero exit means regression
 capabilities/*.json               device declarations; adding one needs no code
@@ -176,6 +180,13 @@ flag or model:
   on `GGML_ASSERT(n_tokens_all <= cparams.n_batch)`.
 - **`/health` returning ok does not mean it works.** The server reports `model loaded`
   even when the vision buffer failed to allocate. Send a real request to find out.
+- **Taking away the abstention makes answers unrepeatable.** Asked the same question
+  about the same four frames eight times each: with `uncertain` available it answered
+  uncertain 32/32, and the scene really was not a work area. Remove `uncertain` from
+  the schema and 5 of 32 answers flip on identical images, with latency up 26%
+  (`docs/tech/notes/scene-judgement.md`). The constrained field repeats; the free-text
+  `evidence` did not, varying 2-3 ways even where the verdict was fixed. Abstention is
+  not a performance concession, it is what makes the output reproducible.
 - **The VLM cannot judge position.** Asked which third of the frame an object sits in, it
   answered "left" for all nine positions — 3/9, and the three were the ones that happened
   to be left. Larger images bought one more correct answer for 3.5x the latency. Rules do
@@ -260,6 +271,17 @@ passed the hidden one 12/12 — the expectations were asking what the camera saw
 what the policy did. That is the same mistake as S-4's empty tape, and both are pinned
 by tests. `scenarios/hidden/` is the shape of the idea, not a real hidden set: anything
 readable is not hidden, so an instructor keeps their own.
+
+## Watchdog and the change-only loop
+
+`ControlLoop` actuates only when the command changes, and a watchdog reads a still
+scene as silence — so enabling one trips a perfectly healthy host. The simulator's
+watchdog surfaced this; the same gap was in the real actuator, unhit only because the
+watchdog ships off. `Actuator.poll()` now runs every step: `SerialLedActuator` sends
+`PING` when `keepalive_ms` is set (feeding the watchdog without clearing a trip), and
+`SimActuator` feeds the simulated one. **Set the keepalive shorter than the watchdog
+on any device that enables it.** `tests/test_watchdog_sim.py` pins the simulator to the
+firmware's rules, including that observing a trip must not clear it.
 
 ## Capability contract (VS-4)
 

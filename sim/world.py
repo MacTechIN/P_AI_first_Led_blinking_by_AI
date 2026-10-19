@@ -59,13 +59,64 @@ class SimWorld:
     clock: Callable[[], float] = time.monotonic
     """시간 공급원. 시험에서는 고정 함수를 넣어 점멸 위상을 결정적으로 만든다."""
 
+    watchdog_ms: int = 0
+    """0 이면 꺼짐. **펌웨어와 같은 기본값이다.**
+
+    LED 는 켜진 채 남아도 해롭지 않고, 점멸·색상환 시연은 상태를 세우고
+    일부러 말을 멈춘다. 스스로를 상하게 할 수 있는 장치가 시작할 때 켠다.
+    """
+
     command: LedCommand = field(default_factory=lambda: LedCommand("off"))
     commands: int = 0
+    _tripped: bool = False
+    _fed_at: float | None = None
 
     def apply(self, cmd: LedCommand) -> None:
-        """액추에이터가 부른다. 명령은 즉시 빛이 된다."""
+        """액추에이터가 부른다. 명령은 즉시 빛이 된다.
+
+        출력을 구동하는 명령이므로 워치독을 **먹이고 트립도 푼다** — 펌웨어의
+        `ON`·`OFF`·`BLINK` 와 같다.
+        """
         self.command = cmd
         self.commands += 1
+        self._fed_at = self.clock()
+        self._tripped = False
+
+    @property
+    def tripped(self) -> bool:
+        """읽을 때마다 검사한다.
+
+        펌웨어는 `loop()` 에서 쉬지 않고 본다. 시뮬레이터에는 그 루프가 없으므로
+        **읽는 순간 보는 것**으로 같은 성질을 만든다. 저장된 값만 돌려주면
+        시간이 지나도 트립되지 않은 것처럼 보인다 — 실제로 그렇게 만들었다가
+        시험에서 걸렸다.
+        """
+        self._check_watchdog(self.clock())
+        return self._tripped
+
+    def feed(self) -> None:
+        """`PING` 처럼 **먹이기만** 한다. 트립은 풀지 않는다.
+
+        푼다면 트립을 관측하려고 보낸 명령이 트립을 지워 버린다. 그리고 트립된
+        장치는 누가 인사했다고 깨어나는 것이 아니라, **명시적으로 되돌릴 때까지**
+        안전 상태에 있어야 한다.
+        """
+        self._fed_at = self.clock()
+
+    def state(self, t: float | None = None) -> dict[str, object]:
+        """`STATE` 처럼 **관측만** 한다. 트립을 지우지 않는다."""
+        self._check_watchdog(self.clock() if t is None else t)
+        return {"mode": self.command.mode, "tripped": self._tripped,
+                "watchdog_ms": self.watchdog_ms}
+
+    def _check_watchdog(self, t: float) -> None:
+        if not self.watchdog_ms or self._tripped:
+            return
+        if self._fed_at is None:
+            self._fed_at = t
+            return
+        if (t - self._fed_at) * 1000.0 >= self.watchdog_ms:
+            self._tripped = True       # 안전 상태 — 이 장치에서는 소등
 
     def set_card(self, rgb: tuple[int, int, int]) -> None:
         """장면의 입력을 바꾼다. S-2 의 장면 대본이 이 자리를 대신한다."""
@@ -78,7 +129,11 @@ class SimWorld:
 
     def emitted(self, t: float | None = None) -> tuple[int, int, int]:
         """지금 LED 가 내는 색. 점멸 중이면 꺼진 위상에서 (0,0,0)."""
-        return self.panel.emit(self.command, self.clock() if t is None else t)
+        now = self.clock() if t is None else t
+        self._check_watchdog(now)
+        if self._tripped:
+            return (0, 0, 0)
+        return self.panel.emit(self.command, now)
 
     def render(self, seq: int, t: float | None = None) -> np.ndarray:
         img = self._background()(seq)
@@ -135,5 +190,7 @@ class SimWorld:
             "light": self.light,
             "led_at": self.led_at,
             "commands": self.commands,
+            "watchdog_ms": self.watchdog_ms,
+            "tripped": self._tripped,
             **self.panel.describe(),
         }

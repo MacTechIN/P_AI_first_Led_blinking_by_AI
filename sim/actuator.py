@@ -21,10 +21,17 @@ class SimActuator(Actuator):
     def __init__(self, world: SimWorld) -> None:
         self.world = world
         self.history: list[LedCommand] = []
+        self.keepalives = 0
 
     def apply(self, cmd: LedCommand) -> None:
         self.world.apply(cmd)
         self.history.append(cmd)
+
+    def poll(self) -> None:
+        """명령이 바뀌지 않은 스텝. 워치독만 먹인다 — 트립은 풀지 않는다."""
+        if self.world.watchdog_ms:
+            self.world.feed()
+            self.keepalives += 1
 
     @property
     def last(self) -> LedCommand | None:
@@ -40,5 +47,6 @@ class SimActuator(Actuator):
             "type": "SimActuator",
             "commands": len(self.history),
             "wire_lines": self.wire_lines,
+            "keepalives": self.keepalives,
             "last": self.last,
         }

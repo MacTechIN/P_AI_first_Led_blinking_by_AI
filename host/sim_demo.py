@@ -64,6 +64,20 @@ def preview(img: np.ndarray, cols: int = 56) -> str:
     return "\n".join(out)
 
 
+class _Muted:
+    """명령을 받아도 장치에 보내지 않는다. 호스트가 죽은 상황을 만든다."""
+
+    def __init__(self, inner):
+        self.inner = inner
+        self.history = inner.history
+
+    def apply(self, cmd):
+        pass            # 삼킨다 — 장치는 아무 말도 듣지 못한다
+
+    def close(self):
+        self.inner.close()
+
+
 def main() -> None:
     p = argparse.ArgumentParser(description="S-1: 장비 없는 닫힌 제어 루프")
     p.add_argument("--steps", type=int, default=60)
@@ -78,6 +92,10 @@ def main() -> None:
                    help="결함을 하나 넣는다. 'list' 로 목록, 'random' 으로 무작위")
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--reveal", action="store_true", help="끝나고 정답을 보여준다")
+    p.add_argument("--watchdog", type=int, default=0, metavar="MS",
+                   help="워치독 주기(ms). 0 이면 꺼짐 — 펌웨어와 같은 기본값")
+    p.add_argument("--silent-after", type=int, default=0, metavar="N",
+                   help="N 스텝 뒤 명령 전송을 멈춘다 (호스트가 죽은 상황)")
     p.add_argument("--still", action="store_true",
                    help="색지를 바꾸지 않는다 — 정지 장면에서 전송 빈도를 센다")
     p.add_argument("--fps", type=float, default=12.0)
@@ -123,7 +141,8 @@ def main() -> None:
         p.error(f"모르는 결함: {fault}  (목록: --fault list)")
 
     panel = LedPanel(shared_resistor=not args.per_channel_resistor)
-    world = SimWorld(panel=panel, led_radius_px=args.led_radius)
+    world = SimWorld(panel=panel, led_radius_px=args.led_radius,
+                     watchdog_ms=args.watchdog)
     if args.led_in_roi:
         world.led_at = (0.5, 0.5)
     world.set_card(CARDS[cards[0]])
@@ -168,6 +187,10 @@ def main() -> None:
                 card = cards[0] if args.still else cards[(i // max(1, args.dwell)) % len(cards)]
                 world.set_card(CARDS[card])
 
+            if args.silent_after and i == args.silent_after:
+                loop.actuator = _Muted(actuator)       # 호스트가 말을 멈춘다
+                print(f"\n[{i}] 호스트가 명령 전송을 멈췄습니다. "
+                      f"워치독 {args.watchdog}ms\n" if not show else "")
             try:
                 r = loop.step()
             except FrameHealthError as e:
@@ -190,7 +213,8 @@ def main() -> None:
                       f"{'   ← 전송' if r.changed else ''}")
                 print(f"LED 발광  {world.emitted()}   "
                       f"(명령 {len(actuator.history)}회, "
-                      f"시리얼 {actuator.wire_lines}줄)")
+                      f"시리얼 {actuator.wire_lines}줄)"
+                      + ("   ⚠ 워치독 트립 — 안전 상태" if world.tripped else ""))
                 time.sleep(0.0)
             else:
                 print(r.describe())
