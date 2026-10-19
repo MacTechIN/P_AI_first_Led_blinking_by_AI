@@ -69,7 +69,9 @@ def main() -> None:
     p.add_argument("--steps", type=int, default=60)
     p.add_argument("--cards", default="red,green,blue,yellow,none")
     p.add_argument("--dwell", type=int, default=12, help="색지 한 장을 몇 스텝 유지할지")
-    p.add_argument("--policy", choices=["mirror", "rule", "vlm"], default="mirror")
+    p.add_argument("--policy", choices=["mirror", "rule", "vlm", "tape"], default="mirror",
+                   help="tape 는 기록해 둔 실제 VLM 응답을 재생한다 (서버 불필요)")
+    p.add_argument("--tape", help="재생할 기록. 생략하면 tapes/<대본>.json")
     p.add_argument("--scenario", metavar="NAME",
                    help="scenarios/*.json 대본을 재생한다 (--cards 대신)")
     p.add_argument("--fault", metavar="NAME",
@@ -126,7 +128,10 @@ def main() -> None:
         world.led_at = (0.5, 0.5)
     world.set_card(CARDS[cards[0]])
 
-    rig = build_rig(fault, policy=args.policy, world=world, seed=args.seed)
+    kw = {}
+    if args.policy == "tape":
+        kw["tape"] = args.tape or f"tapes/{(scenario.name if scenario else 'basics')}.json"
+    rig = build_rig(fault, policy=args.policy, world=world, seed=args.seed, **kw)
     if fault is None and args.policy == "rule":
         rig.policy = ColorRulePolicy()
     policy, actuator = rig.policy, rig.actuator
@@ -218,6 +223,9 @@ def main() -> None:
               f"거부 {st['invalid']}  실패 {st['failed']}  판단없음 {st['none']}")
         d = policy.last_decision
         print(f"     마지막 판단 {d.describe() if d else '아직 없음'}")
+        if hasattr(policy.client, "stats"):
+            cs = policy.client.stats
+            print(f"     기록 재생  적중 {cs['hits']}  빗나감 {cs['misses']}")
 
     if save_dir:
         print(f"프레임 저장: {save_dir}/")

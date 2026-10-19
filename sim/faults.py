@@ -183,8 +183,14 @@ def build_rig(
     world: SimWorld | None = None,
     seed: int = 0,
     vlm_latency_ms: float = 120.0,
+    tape: str | Any = None,
+    tape_speed: float = 1.0,
 ) -> Rig:
-    """결함 하나를 넣은 장비를 조립한다. `fault=None` 이면 정상 장비."""
+    """결함 하나를 넣은 장비를 조립한다. `fault=None` 이면 정상 장비.
+
+    `policy="tape"` 는 기록해 둔 실제 모델 응답을 재생한다 (S-4). 서버가 없는
+    교실에서 VLM 정책을 그대로 돌리는 방법이다.
+    """
     if fault is not None and fault not in FAULTS:
         raise ValueError(f"모르는 결함: {fault!r}  (가능: {', '.join(FAULTS)})")
 
@@ -212,7 +218,15 @@ def build_rig(
         extractor = partial(extract, roi=(0.70, 0.62, 0.95, 0.92))
 
     pol: Policy
-    if policy == "vlm":
+    if policy == "tape":
+        from control.vlm import VlmPolicy
+
+        from .replay import ReplayVlmClient, Tape
+
+        loaded = tape if hasattr(tape, "entries") else Tape.load(tape)
+        pol = VlmPolicy(ReplayVlmClient(loaded, speed=tape_speed),
+                        fallback=MirrorColorPolicy(), min_interval_s=0.0)
+    elif policy == "vlm":
         from control.vlm import VlmPolicy
 
         from .vlm import SimVlmClient

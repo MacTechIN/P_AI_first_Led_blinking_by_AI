@@ -33,6 +33,7 @@ control/capability.py             VS-4: capability contract (declaration -> sche
 control/evaluate.py               VS-6: golden-set evaluation (regression detection)
 sim/                              S-1/S-2/S-3: virtual LED, scene scripts, fault injection
 scenarios/*.json                  scene scripts: what happens when, and what is correct then
+tapes/*.json                      recorded real VLM answers; replay needs no server (S-4)
 control/direction.py              example 1: position -> colour (rule beats the VLM here)
 control/motion.py                 example 2: frame differencing + alarm state machine
 host/measure_direction.py         rule vs VLM on spatial judgement
@@ -44,6 +45,7 @@ host/vs4_demo.py                  VS-4 demo: camera -> VLM -> contract -> device
 host/vs2_demo.py                  VS-2 end-to-end demo (camera colour -> LED)
 host/sim_demo.py                  sim demo: the whole loop on a laptop, plus scripts and faults
 host/scenario_check.py            play a scene script and score it; non-zero exit means a miss
+host/record_tape.py               ask the real model once and record it for the classroom
 host/verify_rgb.py                closed-loop colour check: commanded vs photographed
 tests/                            pytest suite; runs without a camera attached
 Makefile                          build / flash / monitor wrappers around arduino-cli
@@ -87,6 +89,7 @@ make test       # pytest (camera-dependent tests skip themselves)
 ./host/sim_demo.py                        # closed loop, no devices at all
 ./host/sim_demo.py --scenario dusk        # play a scene script
 ./host/scenario_check.py                  # scenes double as the golden set
+./host/scenario_check.py --policy tape    # real model answers, replayed offline
 ./host/sim_demo.py --fault list           # the eight recorded failures
 ./host/sim_demo.py --fault random --seed 7   # the clinic: symptom only, no answer
 ```
@@ -218,6 +221,17 @@ validated at load, not mid-run — a scenario whose colour name is wrong must fa
 read. They also have a pinned blind spot: `no-hysteresis` passes 9/9 because the
 expectations state what is seen, never how often it is sent. That is the golden set's
 2/5 lesson again, and a test holds it in place.
+
+`tapes/*.json` hold what Qwen2.5-VL-3B actually answered for each scene, so a room
+full of laptops can run the VLM policy with no server and get the same answer every
+time, latency included. Keys are 8x6 colour thumbnails matched by distance, because
+sensor noise means no two frames hash alike; past a tolerance of 0.02 the tape answers
+`none` rather than guessing. A scenario's `expect_tape` pins the **model's own**
+output and is checked only in tape mode — keep it separate from `expect`, because
+`color` and `zone` come from the rule-based features and passed 9/9 even with an empty
+tape. The recorded answers get colour right almost every time and choose an action
+badly (69% `none`), and in `dusk` the model keeps saying green into near-darkness
+while the rule gives up. See `docs/tech/notes/vlm-tape.md`.
 
 ## Capability contract (VS-4)
 

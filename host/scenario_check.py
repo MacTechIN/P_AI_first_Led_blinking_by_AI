@@ -23,25 +23,42 @@ from sim.scenario import ScenarioError, check, load_all
 DEFAULT_FPS = 10.0
 
 
-def observed(result) -> dict:
-    """기대와 맞춰 볼 한 스텝의 요약."""
+def observed(result, policy=None) -> dict:
+    """기대와 맞춰 볼 한 스텝의 요약.
+
+    `vlm_*` 는 **모델이 직접 한 말**이다. color·zone 은 규칙 기반 특징이므로
+    모델이 무엇을 답하든 바뀌지 않는다 — 둘을 섞으면 모델을 검사한다고
+    착각하게 된다.
+    """
     f = result.features
-    return {
+    out = {
         "color": f.color,
         "zone": zone_of(f.centroid_x) if f.centroid_x is not None else None,
         "action": result.command.mode,
     }
+    d = getattr(policy, "last_decision", None)
+    out["vlm_action"] = d.action if d else None
+    out["vlm_colour"] = d.colour if d else None
+    return out
 
 
-def play(scenario, *, fault=None, fps=DEFAULT_FPS, seed=0, verbose=True):
+def play(scenario, *, fault=None, fps=DEFAULT_FPS, seed=0, verbose=True,
+         policy="mirror", tape_dir="tapes", tape_speed=0.0):
     """대본을 **가상 시계**로 돌린다. 24초짜리가 순식간에 끝난다."""
-    rig = build_rig(fault, seed=seed)
+    kw = {}
+    if policy == "tape":
+        kw = {"tape": f"{tape_dir}/{scenario.name}.json", "tape_speed": tape_speed}
+    rig = build_rig(fault, seed=seed, policy=policy, **kw)
     now = 0.0
     rig.world.clock = lambda: now
     passed = failed = 0
 
+    from control.vlm import VlmPolicy
+
     with rig.source:
         loop = rig.loop()
+        if isinstance(rig.policy, VlmPolicy):
+            rig.policy.start()
         steps = int(scenario.seconds * fps)
         for i in range(steps):
             prev, now = now, i / fps
@@ -52,8 +69,11 @@ def play(scenario, *, fault=None, fps=DEFAULT_FPS, seed=0, verbose=True):
                 print(f"  건전성 검사가 막았다: {str(e)[:60]}")
                 return 0, len(scenario.expect)
 
-            for exp in scenario.due(prev, now):
-                got = observed(result)
+            due = list(scenario.due(prev, now))
+            if policy == "tape":
+                due += scenario.due_tape(prev, now)
+            for exp in due:
+                got = observed(result, rig.policy)
                 ok = check(exp, got)
                 passed, failed = passed + ok, failed + (not ok)
                 if verbose or not ok:
@@ -62,6 +82,11 @@ def play(scenario, *, fault=None, fps=DEFAULT_FPS, seed=0, verbose=True):
                                      if got.get(k) != v)
                     print(f"  {'PASS' if ok else 'FAIL'}  {exp.at:5.1f}초  "
                           f"{diff or exp.note or '일치'}")
+        if isinstance(rig.policy, VlmPolicy):
+            rig.policy.stop()
+            if verbose and hasattr(rig.policy.client, "stats"):
+                st = rig.policy.client.stats
+                print(f"  기록 재생: 적중 {st['hits']}  빗나감 {st['misses']}")
     return passed, failed
 
 
@@ -70,6 +95,11 @@ def main() -> None:
     p.add_argument("--dir", default="scenarios")
     p.add_argument("--scenario", help="이름 하나만 돌린다")
     p.add_argument("--fault", help="결함을 하나 넣고 돌린다")
+    p.add_argument("--policy", choices=["mirror", "tape"], default="mirror",
+                   help="tape 는 기록해 둔 실제 VLM 응답을 재생한다 (S-4)")
+    p.add_argument("--tape-dir", default="tapes")
+    p.add_argument("--tape-speed", type=float, default=0.0,
+                   help="지연 배속. 0 이면 즉시, 1 이면 기록된 그대로")
     p.add_argument("--fps", type=float, default=DEFAULT_FPS)
     p.add_argument("--quiet", action="store_true")
     args = p.parse_args()
@@ -89,7 +119,9 @@ def main() -> None:
         print(f"\n{s.describe()}")
         if s.note:
             print(f"  {s.note}")
-        pa, fa = play(s, fault=args.fault, fps=args.fps, verbose=not args.quiet)
+        pa, fa = play(s, fault=args.fault, fps=args.fps, verbose=not args.quiet,
+                      policy=args.policy, tape_dir=args.tape_dir,
+                      tape_speed=args.tape_speed)
         total_p, total_f = total_p + pa, total_f + fa
 
     print(f"\n{total_p}/{total_p + total_f} 통과"

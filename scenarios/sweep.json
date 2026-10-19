@@ -3,12 +3,41 @@
   "seconds": 24,
   "note": "30분 실습 3단계 — 물체가 왼쪽에서 오른쪽으로 지나간다. 위치는 산술이다.",
   "events": [
-    { "t": 0, "card": null },
-    { "t": 2, "move": { "colour": "yellow", "from": 0.28, "to": 0.72, "over": 18 } }
+    {
+      "t": 0,
+      "card": null
+    },
+    {
+      "t": 2,
+      "move": {
+        "colour": "yellow",
+        "from": 0.28,
+        "to": 0.72,
+        "over": 18
+      }
+    }
   ],
   "expect": [
-    { "at": 4,  "zone": "left",   "note": "규칙이면 7.4ms 에 9/9, VLM 은 2,472ms 에 3/9" },
-    { "at": 11, "zone": "centre" },
-    { "at": 19, "zone": "right",  "note": "0.72 에서 멈춘다 — 그 바깥은 ROI 가 보지 않는다" }
+    {
+      "at": 4,
+      "zone": "left",
+      "note": "규칙이면 7.4ms 에 9/9, VLM 은 2,472ms 에 3/9"
+    },
+    {
+      "at": 11,
+      "zone": "centre"
+    },
+    {
+      "at": 19,
+      "zone": "right",
+      "note": "0.72 에서 멈춘다 — 그 바깥은 ROI 가 보지 않는다"
+    }
+  ],
+  "expect_tape": [
+    {
+      "at": 11,
+      "vlm_colour": "yellow",
+      "note": "색은 맞히지만 위치는 묻지도 않았다"
+    }
   ]
 }

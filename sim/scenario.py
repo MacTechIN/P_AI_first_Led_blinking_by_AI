@@ -72,6 +72,15 @@ class Scenario:
     seconds: float
     events: list[dict[str, Any]] = field(default_factory=list)
     expect: list[Expectation] = field(default_factory=list)
+    expect_tape: list[Expectation] = field(default_factory=list)
+    """**모델 자신의 답**을 고정하는 기대. 기록 재생(S-4)일 때만 검사한다.
+
+    따로 두는 이유가 있다. `expect` 의 color·zone 은 규칙 기반 특징에서 나오므로
+    모델이 무엇을 답하든 통과한다 — 실제로 **빈 기록으로도 3/3 통과**했다.
+    폴백이 모델을 완전히 가리기 때문이다(ADR-0009 와 같은 일). 모델을 검사하려면
+    모델의 출력을 직접 적어야 한다.
+    """
+
     note: str = ""
 
     def apply(self, world: SimWorld, t: float) -> None:
@@ -95,9 +104,13 @@ class Scenario:
         """(t0, t1] 구간에 검사할 기대. 스텝 사이에 끼어도 빠뜨리지 않는다."""
         return [e for e in self.expect if t0 < e.at <= t1]
 
+    def due_tape(self, t0: float, t1: float) -> list[Expectation]:
+        return [e for e in self.expect_tape if t0 < e.at <= t1]
+
     def describe(self) -> str:
+        tape = f" (+기록 {len(self.expect_tape)})" if self.expect_tape else ""
         return (f"{self.name} · {self.seconds:.0f}초 · "
-                f"사건 {len(self.events)} · 기대 {len(self.expect)}")
+                f"사건 {len(self.events)} · 기대 {len(self.expect)}{tape}")
 
 
 def _parse(raw: dict[str, Any], name: str) -> Scenario:
@@ -121,14 +134,18 @@ def _parse(raw: dict[str, Any], name: str) -> Scenario:
                 raise ScenarioError(f"{where}: move 에는 from 과 to 가 필요하다")
             _rgb(m.get("colour", "yellow"), where)
     events.sort(key=lambda e: e["t"])
-    expect = [Expectation(float(e["at"]), {k: v for k, v in e.items()
-                                           if k not in ("at", "note")},
-                          e.get("note", ""))
-              for e in raw.get("expect", [])]
-    for e in expect:
-        if not e.expect:
-            raise ScenarioError(f"{name} at={e.at}: 기대할 값이 비어 있다")
-    return Scenario(raw.get("name", name), float(raw["seconds"]), events, expect,
+    def _expectations(key: str) -> list[Expectation]:
+        out = [Expectation(float(e["at"]), {k: v for k, v in e.items()
+                                            if k not in ("at", "note")},
+                           e.get("note", ""))
+               for e in raw.get(key, [])]
+        for e in out:
+            if not e.expect:
+                raise ScenarioError(f"{name} at={e.at}: 기대할 값이 비어 있다")
+        return out
+
+    return Scenario(raw.get("name", name), float(raw["seconds"]), events,
+                    _expectations("expect"), _expectations("expect_tape"),
                     raw.get("note", ""))
 
 
