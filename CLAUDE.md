@@ -31,8 +31,10 @@ control/                          L1/L3: features, policies, actuators, control 
 control/vlm.py                    VS-3: async VLM policy, schema enforcement, validator
 control/capability.py             VS-4: capability contract (declaration -> schema+validator+wire)
 control/evaluate.py               VS-6: golden-set evaluation (regression detection)
-sim/                              S-1~S-5: virtual LED, scene scripts, faults, tape, job queue
+sim/                              S-1~S-6: virtual LED, scene scripts, faults, tape, queue
 scenarios/*.json                  scene scripts: what happens when, and what is correct then
+scenarios/hidden/*.json           the set teams do not develop against (S-6)
+teams/*/policy.py                 submissions; the extra ones are deliberate bad examples
 tapes/*.json                      recorded real VLM answers; replay needs no server (S-4)
 control/direction.py              example 1: position -> colour (rule beats the VLM here)
 control/motion.py                 example 2: frame differencing + alarm state machine
@@ -48,6 +50,7 @@ host/scenario_check.py            play a scene script and score it; non-zero exi
 host/record_tape.py               ask the real model once and record it for the classroom
 host/submit.py                    queue a team's policy for a turn on the real rig
 host/rig_worker.py                drain that queue one job at a time; writes runs/<id>/
+host/leaderboard.py               grade every team on public + hidden, four columns, no total
 host/verify_rgb.py                closed-loop colour check: commanded vs photographed
 tests/                            pytest suite; runs without a camera attached
 Makefile                          build / flash / monitor wrappers around arduino-cli
@@ -94,6 +97,7 @@ make test       # pytest (camera-dependent tests skip themselves)
 ./host/scenario_check.py --policy tape    # real model answers, replayed offline
 ./host/submit.py --team A --scenario dusk # queue a run on the shared rig
 ./host/rig_worker.py --real               # serve that queue, one job at a time
+./host/leaderboard.py --detail            # public vs hidden, and why each miss missed
 ./host/sim_demo.py --fault list           # the eight recorded failures
 ./host/sim_demo.py --fault random --seed 7   # the clinic: symptom only, no answer
 ```
@@ -246,6 +250,16 @@ again, so a submission cannot drive the hardware past its limits. A job that rai
 recorded in its `report.json` and the worker takes the next team; `tests/test_queue.py`
 pins that, along with FIFO order and single-claim. On real hardware the worker sends
 `OFF` in a `finally`, so nobody inherits a lit LED.
+
+Grading (S-6) runs a public set and a hidden one and **never adds them up** — accuracy,
+latency, commands per 100 steps and how often the model said something usable, each in
+its own column, because every column alone crowns a different team. `observe()` keeps
+three layers apart on purpose: `color`/`zone` are perception, `action`/`cmd_colour` are
+the policy, `vlm_*` is the model. Mixing them is how a policy tuned to the public set
+passed the hidden one 12/12 — the expectations were asking what the camera saw, not
+what the policy did. That is the same mistake as S-4's empty tape, and both are pinned
+by tests. `scenarios/hidden/` is the shape of the idea, not a real hidden set: anything
+readable is not hidden, so an instructor keeps their own.
 
 ## Capability contract (VS-4)
 

@@ -1,0 +1,63 @@
+{
+  "name": "flicker",
+  "seconds": 18,
+  "note": "숨은 세트 — 색이 자주 바뀐다. 정확도만 쫓아 이력을 없앤 정책이 전송 횟수에서 드러난다.",
+  "events": [
+    {
+      "t": 0,
+      "card": "red"
+    },
+    {
+      "t": 3,
+      "card": "green"
+    },
+    {
+      "t": 6,
+      "card": "red"
+    },
+    {
+      "t": 9,
+      "card": "green"
+    },
+    {
+      "t": 12,
+      "card": "red"
+    },
+    {
+      "t": 15,
+      "card": "green"
+    }
+  ],
+  "expect": [
+    {
+      "at": 2,
+      "color": "red",
+      "cmd_colour": "red"
+    },
+    {
+      "at": 5,
+      "color": "green",
+      "cmd_colour": "green"
+    },
+    {
+      "at": 8,
+      "color": "red",
+      "cmd_colour": "red"
+    },
+    {
+      "at": 11,
+      "color": "green",
+      "cmd_colour": "green"
+    },
+    {
+      "at": 14,
+      "color": "red",
+      "cmd_colour": "red"
+    },
+    {
+      "at": 17,
+      "color": "green",
+      "cmd_colour": "green"
+    }
+  ]
+}

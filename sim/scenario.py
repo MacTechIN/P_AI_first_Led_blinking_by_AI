@@ -176,18 +176,36 @@ def load_all(directory: str | Path = "scenarios") -> dict[str, Scenario]:
 def observe(result: Any, policy: Any = None) -> dict[str, Any]:
     """한 스텝을 기대와 맞춰 볼 수 있는 요약으로.
 
-    `vlm_*` 는 **모델이 직접 한 말**이다. color·zone 은 규칙 기반 특징이라
-    모델이 무엇을 답하든 바뀌지 않는다 — 둘을 섞으면 모델을 검사한다고
-    착각하게 된다 (S-4 에서 빈 기록이 9/9 통과했던 이유).
+    세 층을 **구별해서** 낸다. 섞으면 엉뚱한 것을 검사하게 된다.
+
+    | 열쇠 | 어느 층인가 | 무엇을 검사하나 |
+    |---|---|---|
+    | `color` · `zone` | 인지 (규칙 기반 특징) | 카메라와 특징 추출 |
+    | `action` · `cmd_colour` | **판단** (정책의 출력) | 정책 |
+    | `vlm_action` · `vlm_colour` | 모델이 직접 한 말 | 모델 |
+
+    이 구별은 두 번 데어서 생겼다. S-4 에서는 `color` 만 보다가 **빈 기록으로도
+    통과**했고, S-6 에서는 같은 이유로 과적합 정책이 숨은 세트를 만점으로
+    통과했다 — `color` 는 정책이 무엇을 하든 바뀌지 않기 때문이다.
     """
     from control.direction import zone_of
+    from control.features import classify_hue
 
     f = result.features
     d = getattr(policy, "last_decision", None)
+    cmd = result.command
+    cmd_colour = None
+    if cmd.mode != "off" and max(cmd.rgb) > 0:
+        import colorsys
+
+        r, g, b = (v / 255.0 for v in cmd.rgb)
+        cmd_colour = classify_hue(colorsys.rgb_to_hsv(r, g, b)[0] * 179.0)
+
     return {
         "color": f.color,
         "zone": zone_of(f.centroid_x) if f.centroid_x is not None else None,
-        "action": result.command.mode,
+        "action": cmd.mode,
+        "cmd_colour": cmd_colour,
         "vlm_action": d.action if d else None,
         "vlm_colour": d.colour if d else None,
     }

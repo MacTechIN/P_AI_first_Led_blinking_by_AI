@@ -1,0 +1,40 @@
+{
+  "name": "offcolour",
+  "seconds": 18,
+  "note": "숨은 세트 — 공개 세트에 없던 색. 빨강·초록·파랑만 다루도록 맞춘 정책이 여기서 떨어진다.",
+  "events": [
+    {
+      "t": 0,
+      "card": "orange"
+    },
+    {
+      "t": 6,
+      "card": "purple"
+    },
+    {
+      "t": 12,
+      "card": "cyan"
+    }
+  ],
+  "expect": [
+    {
+      "at": 4,
+      "color": "orange",
+      "action": "on",
+      "cmd_colour": "orange",
+      "note": "인지뿐 아니라 **정책이 실제로 켰는지**까지 본다"
+    },
+    {
+      "at": 10,
+      "color": "purple",
+      "action": "on",
+      "cmd_colour": "purple"
+    },
+    {
+      "at": 16,
+      "color": "cyan",
+      "action": "on",
+      "cmd_colour": "cyan"
+    }
+  ]
+}

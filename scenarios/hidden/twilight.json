@@ -1,0 +1,41 @@
+{
+  "name": "twilight",
+  "seconds": 18,
+  "note": "숨은 세트 — 어둡지만 색은 아직 유효하다. dusk 를 통과하려고 문턱을 올린 정책이 여기서 포기한다.",
+  "events": [
+    {
+      "t": 0,
+      "card": "green",
+      "light": 1.0
+    },
+    {
+      "t": 6,
+      "light": 0.55
+    },
+    {
+      "t": 12,
+      "light": 0.45
+    }
+  ],
+  "expect": [
+    {
+      "at": 4,
+      "color": "green",
+      "action": "on",
+      "cmd_colour": "green"
+    },
+    {
+      "at": 10,
+      "color": "green",
+      "action": "on",
+      "cmd_colour": "green"
+    },
+    {
+      "at": 16,
+      "color": "green",
+      "action": "on",
+      "cmd_colour": "green",
+      "note": "여기서도 아직 초록이다 — 포기하면 틀린 것이다"
+    }
+  ]
+}
