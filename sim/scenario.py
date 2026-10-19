@@ -173,6 +173,26 @@ def load_all(directory: str | Path = "scenarios") -> dict[str, Scenario]:
     return out
 
 
+def observe(result: Any, policy: Any = None) -> dict[str, Any]:
+    """한 스텝을 기대와 맞춰 볼 수 있는 요약으로.
+
+    `vlm_*` 는 **모델이 직접 한 말**이다. color·zone 은 규칙 기반 특징이라
+    모델이 무엇을 답하든 바뀌지 않는다 — 둘을 섞으면 모델을 검사한다고
+    착각하게 된다 (S-4 에서 빈 기록이 9/9 통과했던 이유).
+    """
+    from control.direction import zone_of
+
+    f = result.features
+    d = getattr(policy, "last_decision", None)
+    return {
+        "color": f.color,
+        "zone": zone_of(f.centroid_x) if f.centroid_x is not None else None,
+        "action": result.command.mode,
+        "vlm_action": d.action if d else None,
+        "vlm_colour": d.colour if d else None,
+    }
+
+
 def check(expectation: Expectation, got: dict[str, Any]) -> bool:
     """부분 일치. 골든셋과 같은 규칙을 쓴다 — 적어둔 필드만 본다."""
     return matches(expectation.expect, got)

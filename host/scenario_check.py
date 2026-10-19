@@ -15,31 +15,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from control.direction import zone_of
 from perception.health import FrameHealthError
 from sim import build_rig
-from sim.scenario import ScenarioError, check, load_all
+from sim.scenario import ScenarioError, check, load_all, observe
 
 DEFAULT_FPS = 10.0
-
-
-def observed(result, policy=None) -> dict:
-    """기대와 맞춰 볼 한 스텝의 요약.
-
-    `vlm_*` 는 **모델이 직접 한 말**이다. color·zone 은 규칙 기반 특징이므로
-    모델이 무엇을 답하든 바뀌지 않는다 — 둘을 섞으면 모델을 검사한다고
-    착각하게 된다.
-    """
-    f = result.features
-    out = {
-        "color": f.color,
-        "zone": zone_of(f.centroid_x) if f.centroid_x is not None else None,
-        "action": result.command.mode,
-    }
-    d = getattr(policy, "last_decision", None)
-    out["vlm_action"] = d.action if d else None
-    out["vlm_colour"] = d.colour if d else None
-    return out
 
 
 def play(scenario, *, fault=None, fps=DEFAULT_FPS, seed=0, verbose=True,
@@ -73,7 +53,7 @@ def play(scenario, *, fault=None, fps=DEFAULT_FPS, seed=0, verbose=True,
             if policy == "tape":
                 due += scenario.due_tape(prev, now)
             for exp in due:
-                got = observed(result, rig.policy)
+                got = observe(result, rig.policy)
                 ok = check(exp, got)
                 passed, failed = passed + ok, failed + (not ok)
                 if verbose or not ok:

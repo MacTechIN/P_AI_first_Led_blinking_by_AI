@@ -31,7 +31,7 @@ control/                          L1/L3: features, policies, actuators, control 
 control/vlm.py                    VS-3: async VLM policy, schema enforcement, validator
 control/capability.py             VS-4: capability contract (declaration -> schema+validator+wire)
 control/evaluate.py               VS-6: golden-set evaluation (regression detection)
-sim/                              S-1/S-2/S-3: virtual LED, scene scripts, fault injection
+sim/                              S-1~S-5: virtual LED, scene scripts, faults, tape, job queue
 scenarios/*.json                  scene scripts: what happens when, and what is correct then
 tapes/*.json                      recorded real VLM answers; replay needs no server (S-4)
 control/direction.py              example 1: position -> colour (rule beats the VLM here)
@@ -46,6 +46,8 @@ host/vs2_demo.py                  VS-2 end-to-end demo (camera colour -> LED)
 host/sim_demo.py                  sim demo: the whole loop on a laptop, plus scripts and faults
 host/scenario_check.py            play a scene script and score it; non-zero exit means a miss
 host/record_tape.py               ask the real model once and record it for the classroom
+host/submit.py                    queue a team's policy for a turn on the real rig
+host/rig_worker.py                drain that queue one job at a time; writes runs/<id>/
 host/verify_rgb.py                closed-loop colour check: commanded vs photographed
 tests/                            pytest suite; runs without a camera attached
 Makefile                          build / flash / monitor wrappers around arduino-cli
@@ -90,6 +92,8 @@ make test       # pytest (camera-dependent tests skip themselves)
 ./host/sim_demo.py --scenario dusk        # play a scene script
 ./host/scenario_check.py                  # scenes double as the golden set
 ./host/scenario_check.py --policy tape    # real model answers, replayed offline
+./host/submit.py --team A --scenario dusk # queue a run on the shared rig
+./host/rig_worker.py --real               # serve that queue, one job at a time
 ./host/sim_demo.py --fault list           # the eight recorded failures
 ./host/sim_demo.py --fault random --seed 7   # the clinic: symptom only, no answer
 ```
@@ -232,6 +236,16 @@ output and is checked only in tape mode — keep it separate from `expect`, beca
 tape. The recorded answers get colour right almost every time and choose an action
 badly (69% `none`), and in `dusk` the model keeps saying green into near-darkness
 while the rule gives up. See `docs/tech/notes/vlm-tape.md`.
+
+The submission queue (S-5) is three directories and `os.rename`; it exists to
+**serialise**, not to parallelise, because the camera, the port and the server are each
+one. `host/rig_worker.py` runs a submitted `build()` in its own process — that is not a
+sandbox and the file says so. The boundary that holds is the one from ADR-0003:
+`LedCommand` rejects out-of-range values on the host and the firmware rejects them
+again, so a submission cannot drive the hardware past its limits. A job that raises is
+recorded in its `report.json` and the worker takes the next team; `tests/test_queue.py`
+pins that, along with FIFO order and single-claim. On real hardware the worker sends
+`OFF` in a `finally`, so nobody inherits a lit LED.
 
 ## Capability contract (VS-4)
 
