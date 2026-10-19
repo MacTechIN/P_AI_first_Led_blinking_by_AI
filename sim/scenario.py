@@ -160,8 +160,10 @@ def load(path: str | Path) -> Scenario:
     return _parse(raw, p.stem)
 
 
-def load_all(directory: str | Path = "scenarios") -> dict[str, Scenario]:
-    d = Path(directory)
+def load_all(directory: str | Path | None = None) -> dict[str, Scenario]:
+    from .paths import SCENARIOS
+
+    d = Path(SCENARIOS if directory is None else directory)
     if not d.is_dir():
         raise ScenarioError(f"대본 디렉터리가 없다: {d}")
     out = {}

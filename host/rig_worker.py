@@ -24,7 +24,6 @@
 
 import argparse
 import csv
-import importlib.util
 import json
 import sys
 import time
@@ -35,29 +34,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from control.commands import LedCommand
 from control.loop import ControlLoop, summarize
-from control.policy import Policy
 from perception.health import FrameHealthError
 from sim.queue import QUEUE, RUNS, claim, finish
+from sim.submission import load_policy
+from sim.paths import SCENARIOS
 from sim.scenario import ScenarioError, check, load_all, observe
 
 FRAME_EVERY = 20
 """몇 스텝마다 프레임 한 장을 남길지. 영상 대신 이것으로 본다 (ffmpeg 없음)."""
-
-
-def load_policy(path: str | Path) -> Policy:
-    """제출 파일에서 `build()` 를 불러온다. 약속은 이 함수 하나뿐이다."""
-    p = Path(path)
-    spec = importlib.util.spec_from_file_location(f"submitted_{p.stem}", p)
-    if spec is None or spec.loader is None:
-        raise ValueError(f"불러올 수 없다: {p}")
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    if not hasattr(module, "build"):
-        raise ValueError(f"{p}: build() 가 없다")
-    policy = module.build()
-    if not isinstance(policy, Policy):
-        raise ValueError(f"{p}: build() 가 Policy 를 돌려주지 않았다")
-    return policy
 
 
 def build_rig(real: bool, port: str, source_spec: str):
@@ -83,7 +67,7 @@ def run_job(spec: dict, *, real: bool, port: str, source_spec: str,
     report = {"id": spec["id"], "team": spec["team"], "scenario": spec["scenario"],
               "note": spec.get("note", ""), "real": real, "error": None}
 
-    scenarios = load_all("scenarios")
+    scenarios = load_all(SCENARIOS)
     if spec["scenario"] not in scenarios:
         report["error"] = f"모르는 대본: {spec['scenario']}"
         (out / "report.json").write_text(json.dumps(report, ensure_ascii=False, indent=1))

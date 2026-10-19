@@ -90,10 +90,10 @@ class SceneFeatures:
 
 def hue_to_rgb(hue: float) -> tuple[int, int, int]:
     """색조를 완전 채도·완전 명도의 RGB 로 편다. LED 표시용."""
-    import cv2
+    from .colour import hsv_to_rgb
 
     px = np.uint8([[[int(hue) % 180, 255, 255]]])
-    r, g, b = cv2.cvtColor(px, cv2.COLOR_HSV2RGB)[0, 0]
+    r, g, b = hsv_to_rgb(px)[0, 0]
     return (int(r), int(g), int(b))
 
 
@@ -113,13 +113,13 @@ def extract(
     min_coverage: float = MIN_COVERAGE,
 ) -> SceneFeatures:
     """RGB 이미지에서 특징을 뽑는다."""
-    import cv2
+    from .colour import rgb_to_hsv
 
     h, w = image.shape[:2]
     x0, y0, x1, y1 = roi
     crop = image[int(y0 * h) : int(y1 * h), int(x0 * w) : int(x1 * w)]
 
-    hsv = cv2.cvtColor(crop, cv2.COLOR_RGB2HSV)
+    hsv = rgb_to_hsv(crop)
     hue, sat, val = hsv[..., 0], hsv[..., 1], hsv[..., 2]
     brightness = float(val.mean())
 

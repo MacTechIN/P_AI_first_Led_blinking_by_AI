@@ -26,9 +26,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from control.loop import ControlLoop, summarize
 from control.vlm import VlmPolicy
 from perception.health import FrameHealthError
-from rig_worker import load_policy
 from sim import build_rig
+from sim.paths import HIDDEN, SCENARIOS, TEAMS
 from sim.scenario import ScenarioError, check, load_all, observe
+from sim.submission import load_policy
 
 
 def grade(policy_path: Path, directory: str, *, fps: float = 5.0, detail=False):
@@ -82,9 +83,9 @@ def grade(policy_path: Path, directory: str, *, fps: float = 5.0, detail=False):
 
 def main() -> None:
     p = argparse.ArgumentParser(description="공개 · 숨은 세트 채점")
-    p.add_argument("--teams", default="teams")
-    p.add_argument("--public", default="scenarios")
-    p.add_argument("--hidden", default="scenarios/hidden")
+    p.add_argument("--teams", default=TEAMS)
+    p.add_argument("--public", default=SCENARIOS)
+    p.add_argument("--hidden", default=HIDDEN)
     p.add_argument("--team", help="한 팀만")
     p.add_argument("--detail", action="store_true")
     p.add_argument("--fps", type=float, default=5.0)

@@ -17,13 +17,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from perception.health import FrameHealthError
 from sim import build_rig
+from sim.paths import SCENARIOS, TAPES
 from sim.scenario import ScenarioError, check, load_all, observe
 
 DEFAULT_FPS = 10.0
 
 
 def play(scenario, *, fault=None, fps=DEFAULT_FPS, seed=0, verbose=True,
-         policy="mirror", tape_dir="tapes", tape_speed=0.0):
+         policy="mirror", tape_dir=TAPES, tape_speed=0.0):
     """대본을 **가상 시계**로 돌린다. 24초짜리가 순식간에 끝난다."""
     kw = {}
     if policy == "tape":
@@ -72,12 +73,12 @@ def play(scenario, *, fault=None, fps=DEFAULT_FPS, seed=0, verbose=True,
 
 def main() -> None:
     p = argparse.ArgumentParser(description="장면 대본 검사")
-    p.add_argument("--dir", default="scenarios")
+    p.add_argument("--dir", default=SCENARIOS)
     p.add_argument("--scenario", help="이름 하나만 돌린다")
     p.add_argument("--fault", help="결함을 하나 넣고 돌린다")
     p.add_argument("--policy", choices=["mirror", "tape"], default="mirror",
                    help="tape 는 기록해 둔 실제 VLM 응답을 재생한다 (S-4)")
-    p.add_argument("--tape-dir", default="tapes")
+    p.add_argument("--tape-dir", default=TAPES)
     p.add_argument("--tape-speed", type=float, default=0.0,
                    help="지연 배속. 0 이면 즉시, 1 이면 기록된 그대로")
     p.add_argument("--fps", type=float, default=DEFAULT_FPS)

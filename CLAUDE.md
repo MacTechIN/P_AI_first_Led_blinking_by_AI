@@ -32,6 +32,8 @@ control/vlm.py                    VS-3: async VLM policy, schema enforcement, va
 control/capability.py             VS-4: capability contract (declaration -> schema+validator+wire)
 control/evaluate.py               VS-6: golden-set evaluation (regression detection)
 sim/                              S-1~S-6: virtual LED, scene scripts, faults, tape, queue
+tools/make_bundle.py              build the offline student bundle (USB, no network)
+tools/START.py                    what a student runs; installs numpy from the bundle's wheels
 scenarios/*.json                  scene scripts: what happens when, and what is correct then
 scenarios/hidden/*.json           the set teams do not develop against (S-6)
 teams/*/policy.py                 submissions; the extra ones are deliberate bad examples
@@ -271,6 +273,25 @@ passed the hidden one 12/12 — the expectations were asking what the camera saw
 what the policy did. That is the same mistake as S-4's empty tape, and both are pinned
 by tests. `scenarios/hidden/` is the shape of the idea, not a real hidden set: anything
 readable is not hidden, so an instructor keeps their own.
+
+## Offline student bundle
+
+The classroom has no network, so the simulator ships on a USB stick:
+`./tools/make_bundle.py --wheels <dir> --out dist` produces `pai-sim.zip` (~162MB with
+numpy wheels for 11 platform/version combinations), and a student runs `python3
+START.py`, which installs numpy from the bundle and self-checks before showing the
+four steps.
+
+**numpy is the only hard dependency.** OpenCV is not bundled — it is 50MB per platform
+and all this code wants from it is colour conversion, so `control/colour.py` does that
+in numpy and defers to cv2 when it is present. The two must agree or a student and the
+instructor see different scores: `tests/test_colour.py` holds them to ±1, and the
+INTER_AREA downscale had to be reimplemented with fractional edge weights, since
+integer block means drifted by up to 15 and that lands straight in the motion noise
+floor. `tests/test_offline.py` runs the student path in a subprocess with cv2 blocked
+and from a different working directory, which is also why repo-shipped data resolves
+through `sim/paths.py` rather than the CWD. Instructions for the instructor are in
+`docs/labs/OFFLINE.md`.
 
 ## Watchdog and the change-only loop
 

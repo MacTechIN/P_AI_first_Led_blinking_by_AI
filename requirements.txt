@@ -1,0 +1,9 @@
+# 학생 노트북 — 시뮬레이터만 돌릴 때 필요한 전부
+numpy>=1.24
+opencv-python>=4.8
+pytest>=7.0            # 시험을 돌려 볼 때만
+
+# 실물 장비(강사용)에서 추가로 필요한 것
+#   pyserial            아두이노 직렬 통신
+#   python3-gi, GStreamer  Jetson CSI 카메라 (apt, pip 아님)
+# 둘 다 **지연 임포트**라, 없어도 시뮬레이터는 그대로 돈다.

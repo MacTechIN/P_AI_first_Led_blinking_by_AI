@@ -8,7 +8,9 @@ import pytest
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "host"))
-from rig_worker import load_policy, run_job  # noqa: E402
+from rig_worker import run_job  # noqa: E402
+
+from sim.submission import load_policy  # noqa: E402
 
 from sim.queue import claim, finish, pending_jobs  # noqa: E402
 

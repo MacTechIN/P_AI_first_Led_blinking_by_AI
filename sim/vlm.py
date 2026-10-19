@@ -27,10 +27,10 @@ _HUE_NAME: list[tuple[int, int, str]] = [
 
 def colour_of(rgb: tuple[int, int, int]) -> str | None:
     """장면의 색지가 무슨 색인지. 모델이 제대로 답했다면 냈을 이름."""
-    import cv2
+    from control.colour import rgb_to_hsv
 
     px = np.uint8([[list(rgb)]])
-    h, s, v = cv2.cvtColor(px, cv2.COLOR_RGB2HSV)[0, 0]
+    h, s, v = rgb_to_hsv(px)[0, 0]
     if s < 60 or v < 40:
         return None
     for lo, hi, name in _HUE_NAME:

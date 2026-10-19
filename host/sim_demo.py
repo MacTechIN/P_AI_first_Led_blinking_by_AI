@@ -32,6 +32,7 @@ from control import ColorRulePolicy, MirrorColorPolicy, summarize
 from control.vlm import VlmPolicy
 from perception.health import FrameHealthError
 from sim import FAULTS, LedPanel, SimActuator, SimSource, SimWorld, build_rig
+from sim.paths import TAPES
 
 CARDS: dict[str, tuple[int, int, int]] = {
     "red": (220, 40, 40),
@@ -149,7 +150,7 @@ def main() -> None:
 
     kw = {}
     if args.policy == "tape":
-        kw["tape"] = args.tape or f"tapes/{(scenario.name if scenario else 'basics')}.json"
+        kw["tape"] = args.tape or f"{TAPES}/{(scenario.name if scenario else 'basics')}.json"
     rig = build_rig(fault, policy=args.policy, world=world, seed=args.seed, **kw)
     if fault is None and args.policy == "rule":
         rig.policy = ColorRulePolicy()

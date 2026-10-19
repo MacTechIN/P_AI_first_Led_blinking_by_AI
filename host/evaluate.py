@@ -15,12 +15,13 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from control import GoldenError, load_cases, run_golden
+from sim.paths import GOLDEN
 from control.vlm import VlmClient, VlmError
 
 
 def main() -> None:
     p = argparse.ArgumentParser(description="골든셋 평가")
-    p.add_argument("--golden", default="golden")
+    p.add_argument("--golden", default=GOLDEN)
     p.add_argument("--endpoint", default="http://127.0.0.1:8080/v1/chat/completions")
     p.add_argument("--quiet", action="store_true", help="실패만 출력")
     args = p.parse_args()

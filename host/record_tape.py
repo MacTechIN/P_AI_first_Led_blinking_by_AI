@@ -22,13 +22,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from control.vlm import VlmClient, VlmError
 from sim import build_rig
 from sim.replay import RecordingVlmClient, Tape
+from sim.paths import SCENARIOS, TAPES
 from sim.scenario import ScenarioError, load_all
 
 
 def main() -> None:
     p = argparse.ArgumentParser(description="VLM 응답 기록")
-    p.add_argument("--dir", default="scenarios")
-    p.add_argument("--out", default="tapes")
+    p.add_argument("--dir", default=SCENARIOS)
+    p.add_argument("--out", default=TAPES)
     p.add_argument("--scenario")
     p.add_argument("--client", choices=["real", "sim"], default="real")
     p.add_argument("--endpoint", default="http://127.0.0.1:8080/v1/chat/completions")

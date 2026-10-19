@@ -47,11 +47,10 @@ class MotionDetector:
         self._prev = None
 
     def _prepare(self, image: np.ndarray) -> np.ndarray:
-        import cv2
+        from .colour import resize_area, to_gray
 
-        small = cv2.resize(image, (self.width, self.height),
-                           interpolation=cv2.INTER_AREA)
-        return cv2.cvtColor(small, cv2.COLOR_RGB2GRAY).astype(np.float32)
+        small = resize_area(image, self.width, self.height)
+        return to_gray(small).astype(np.float32)
 
     def score(self, image: np.ndarray) -> float | None:
         """직전 프레임 대비 움직임 점수. 첫 프레임이면 None."""
