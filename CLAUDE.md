@@ -67,7 +67,8 @@ docs/simulation_plan.md           how many learners practise on one rig (sim tie
 docs/labs/                        module-by-module lab guides (parts list, steps, exercises)
 docs/labs/INSTRUCTOR.md           instructor guide: answers, sticking points, assessment
 docs/lecture/ppt-outline.md       deck plan in the AX consulting deck's format
-docs/lecture/deck/                the deck itself (62 slides) + its pptxgenjs generators
+docs/lecture/deck/                the deck itself (60 slides) + its pptxgenjs generators
+docs/lecture/presenter-script.md  what to say on each slide, with the figures spelled out
 docs/31.AX컨설팅방법론_*.pdf      reference deck whose format the outline follows
 docs/제3기AX과정-*.docx           4지선다형 quiz: the instructor's reference, and the P-AI one built from it
 docs/visuals/                     published explainer pages (module 4 colour loop)

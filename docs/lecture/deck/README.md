@@ -4,7 +4,8 @@
 실습(Chapter 5)은 **30분**이다. 개념을 한 번 만져 보는 것이 목적이고, 안전 설계와
 골든셋 양식은 실습 시간에 쓰지 않고 "가져가는 양식" 으로 넘긴다.
 포맷은 `docs/31.AX컨설팅방법론_통합교재(실습포함)-최종본.pdf` 의 마스터를 따른다.
-구성 계획은 `docs/lecture/ppt-outline.md`.
+구성 계획은 `docs/lecture/ppt-outline.md`,
+발표 스크립트는 `docs/lecture/presenter-script.md` (장별로 할 말과 수치).
 
 ## 구성
 
