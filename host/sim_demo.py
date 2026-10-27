@@ -46,6 +46,30 @@ CARDS: dict[str, tuple[int, int, int]] = {
 }
 
 
+def enable_ansi() -> bool:
+    """윈도우 콘솔에서 ANSI 색을 켠다.
+
+    Windows Terminal 은 기본으로 되지만 **옛 cmd.exe 는 꺼져 있다.** 켜 주지
+    않으면 색 대신 `[38;2;...m` 같은 글자가 쏟아진다. 다른 운영체제에서는
+    아무것도 하지 않는다.
+    """
+    if sys.platform != "win32":
+        return True
+    try:
+        import ctypes
+
+        kernel32 = ctypes.windll.kernel32
+        ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x0004
+        handle = kernel32.GetStdHandle(-11)          # STD_OUTPUT_HANDLE
+        mode = ctypes.c_uint32()
+        if not kernel32.GetConsoleMode(handle, ctypes.byref(mode)):
+            return False
+        return bool(kernel32.SetConsoleMode(
+            handle, mode.value | ENABLE_VIRTUAL_TERMINAL_PROCESSING))
+    except Exception:
+        return False
+
+
 def preview(img: np.ndarray, cols: int = 56) -> str:
     """프레임을 터미널에 그린다. 반블록 한 글자가 세로 두 화소다."""
     h, w = img.shape[:2]
@@ -160,7 +184,7 @@ def main() -> None:
     if save_dir:
         save_dir.mkdir(parents=True, exist_ok=True)
 
-    show = not args.no_preview and sys.stdout.isatty()
+    show = not args.no_preview and sys.stdout.isatty() and enable_ansi()
     wiring = "채널별 저항" if args.per_channel_resistor else "공통 저항 (실물)"
     print(f"정책 {policy.name}   배선 {wiring}   "
           f"LED {'ROI 안' if args.led_in_roi else 'ROI 밖'}   {args.steps} 스텝")

@@ -32,6 +32,7 @@ control/vlm.py                    VS-3: async VLM policy, schema enforcement, va
 control/capability.py             VS-4: capability contract (declaration -> schema+validator+wire)
 control/evaluate.py               VS-6: golden-set evaluation (regression detection)
 sim/                              S-1~S-6: virtual LED, scene scripts, faults, tape, queue
+docs/labs/STUDENT.md              the manual a student follows, with the output they will see
 tools/make_bundle.py              build the offline student bundle (USB, no network)
 tools/START.py                    what a student runs; installs numpy from the bundle's wheels
 scenarios/*.json                  scene scripts: what happens when, and what is correct then
@@ -279,9 +280,11 @@ readable is not hidden, so an instructor keeps their own.
 
 The classroom has no network, so the simulator ships on a USB stick:
 `./tools/make_bundle.py --wheels <dir> --out dist` produces `pai-sim.zip` (~162MB with
-numpy wheels for 11 platform/version combinations), and a student runs `python3
-START.py`, which installs numpy from the bundle and self-checks before showing the
-four steps.
+numpy wheels for 11 platform/version combinations), and a student copies the folder to
+their own PC and runs `python START.py` (or double-clicks `START.bat` on Windows),
+which installs numpy from the bundle and self-checks before showing the four steps.
+`docs/labs/STUDENT.md` ships as the bundle's `MANUAL.md` and quotes the real output of
+every step, so a student can tell whether it worked without asking.
 
 **numpy is the only hard dependency.** OpenCV is not bundled — it is 50MB per platform
 and all this code wants from it is colour conversion, so `control/colour.py` does that

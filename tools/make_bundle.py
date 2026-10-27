@@ -19,7 +19,10 @@ ROOT = Path(__file__).resolve().parents[1]
 PACKAGES = ["sim", "control", "perception"]
 DATA = ["scenarios", "tapes", "teams"]
 HOST = ["sim_demo.py", "scenario_check.py", "leaderboard.py", "promote_case.py"]
-DOCS = {"docs/labs/08-fault-clinic.md": "docs/08-fault-clinic.md"}
+DOCS = {
+    "docs/labs/08-fault-clinic.md": "docs/08-fault-clinic.md",
+    "docs/labs/STUDENT.md": "MANUAL.md",      # 학생이 따라 하는 본문
+}
 
 
 def copy_tree(src: Path, dst: Path) -> None:
@@ -46,6 +49,7 @@ def build(out: Path, wheels: Path | None) -> Path:
         shutil.copyfile(ROOT / src, target)
 
     shutil.copyfile(ROOT / "tools" / "START.py", stage / "START.py")
+    shutil.copyfile(ROOT / "tools" / "START.bat", stage / "START.bat")
     shutil.copyfile(ROOT / "tools" / "README-학생용.md", stage / "README.md")
 
     if wheels and wheels.is_dir():

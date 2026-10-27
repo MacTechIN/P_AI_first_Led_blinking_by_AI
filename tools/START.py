@@ -16,11 +16,13 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 PY = sys.executable or "python3"
+WINDOWS = sys.platform == "win32"
 
 
 def say(*lines):
     for line in lines:
         print(line)
+    sys.stdout.flush()
 
 
 def check_python():
@@ -29,6 +31,11 @@ def check_python():
             "  3.10 이상이 필요합니다. 강사에게 알려 주세요.")
         return False
     return True
+
+
+def cmd_name() -> str:
+    """안내문에 쓸 명령 이름. 윈도우는 보통 `python` 이다."""
+    return "python" if WINDOWS else "python3"
 
 
 def ensure_numpy():
@@ -40,6 +47,9 @@ def ensure_numpy():
 
     say("· numpy 가 없어 USB 안의 것으로 설치합니다 (인터넷 쓰지 않습니다)")
     wheels = ROOT / "wheels"
+    if not wheels.is_dir():
+        say("✕ wheels 폴더가 없습니다. USB 에서 폴더 전체를 복사했는지 보세요.")
+        return False
     cmd = [PY, "-m", "pip", "install", "--no-index",
            "--find-links", str(wheels), "numpy"]
     r = subprocess.run(cmd, capture_output=True, text=True)
@@ -78,6 +88,9 @@ def selfcheck():
 
 def run(args):
     script = ROOT / "host" / args[0]
+    # 하위 프로세스가 바로 쓰기 시작하므로, 우리 안내문을 먼저 내보낸다.
+    # 비우지 않으면 안내가 결과 **뒤에** 찍힌다 — 파이프로 넘길 때 실제로 그랬다.
+    sys.stdout.flush()
     subprocess.run([PY, str(script), *args[1:]])
 
 
@@ -104,18 +117,19 @@ def main():
         seed = sys.argv[2] if len(sys.argv) > 2 else "1"
         say("", "── 4단계 · 결함 진단 ──",
             "이 장비에는 문제가 하나 있습니다. 증상만 보고 원인을 찾으세요.",
-            "정답은 `python3 START.py 4 %s --reveal` 로 봅니다." % seed, "")
+            f"정답은 `{cmd_name()} START.py 4 {seed} --reveal` 로 봅니다.", "")
         extra = sys.argv[3:]
         run(["sim_demo.py", "--fault", "random", "--seed", seed,
              "--steps", "60", *extra])
         return 0
 
+    c = cmd_name()
     say("", "준비됐습니다. 아래 순서대로 해 보세요.", "",
-        "  python3 START.py 1      루프가 닫혀 있다 (5분)",
-        "  python3 START.py 2      환경이 변하면 무너진다 (5분)",
-        "  python3 START.py 3      대본이 곧 골든셋 (5분)",
-        "  python3 START.py 4 <팀번호>   결함 진단 (10분)", "",
-        "실습서: docs/08-fault-clinic.md", "")
+        f"  {c} START.py 1      루프가 닫혀 있다 (5분)",
+        f"  {c} START.py 2      환경이 변하면 무너진다 (5분)",
+        f"  {c} START.py 3      대본이 곧 골든셋 (5분)",
+        f"  {c} START.py 4 <팀번호>   결함 진단 (10분)", "",
+        "자세한 설명: MANUAL.md    실습서: docs/08-fault-clinic.md", "")
     return 0
 
 

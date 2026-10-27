@@ -88,3 +88,39 @@ def test_hardware_only_imports_stay_lazy(module):
                 stripped = line.strip()
                 if stripped.startswith((f"import {module}", f"from {module}")):
                     assert line.startswith(" "), f"{path.name}: 최상위 임포트 — {stripped}"
+
+
+# --- 학생 매뉴얼 ---
+
+
+def test_the_manual_only_uses_commands_that_exist():
+    """매뉴얼이 없는 스크립트를 시키면 학생이 거기서 멈춘다."""
+    manual = (ROOT / "docs" / "labs" / "STUDENT.md").read_text()
+    import re
+
+    for script in set(re.findall(r"python3? (host/[\w./]+\.py)", manual)):
+        assert (ROOT / script).is_file(), f"매뉴얼이 없는 파일을 시킨다: {script}"
+
+
+def test_the_manual_and_the_bundle_agree_on_the_entry_point():
+    manual = (ROOT / "docs" / "labs" / "STUDENT.md").read_text()
+    assert "START.py" in manual
+    assert (ROOT / "tools" / "START.py").is_file()
+    assert (ROOT / "tools" / "START.bat").is_file()
+
+
+def test_the_bundle_ships_the_manual_and_the_windows_launcher():
+    """윈도우 사용자가 터미널을 몰라도 시작할 수 있어야 한다."""
+    maker = (ROOT / "tools" / "make_bundle.py").read_text()
+    assert "STUDENT.md" in maker and "MANUAL.md" in maker
+    assert "START.bat" in maker
+
+
+def test_the_manual_states_the_measured_step_counts():
+    """화면에 나올 숫자를 적어 두면 학생이 '맞게 돌고 있나' 를 스스로 안다.
+
+    288 은 24초 × 12fps 다. 처음에 240 으로 적었다가 실제와 달랐다.
+    """
+    manual = (ROOT / "docs" / "labs" / "STUDENT.md").read_text()
+    assert "288 스텝" in manual
+    assert "240 스텝" not in manual

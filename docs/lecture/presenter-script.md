@@ -487,5 +487,6 @@ make test                          # 270 통과
 않는다**는 것만 단언한다.
 
 **"이거 직접 해볼 수 있나요?"**
-→ 노트북만 있으면 된다. `docs/labs/OFFLINE.md` 의 USB 꾸러미를 안내한다.
+→ 각자의 PC만 있으면 된다. `docs/labs/OFFLINE.md` 의 USB 꾸러미를 안내하고,
+학생용 본문은 `docs/labs/STUDENT.md` 다.
 인터넷 없이 돈다.
