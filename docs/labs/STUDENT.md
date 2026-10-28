@@ -40,6 +40,7 @@
 |---|---|
 | **윈도우** | 폴더 안에서 `START.bat` 을 **두 번 누릅니다**. 끝입니다. |
 | 윈도우 (직접) | 주소창에 `cmd` 를 치고 Enter |
+| 윈도우 (PowerShell) | `.\START.bat` — **앞의 `.\` 를 빼면 안 됩니다** |
 | macOS | 폴더에서 마우스 오른쪽 → "폴더에서 새로운 터미널 열기" |
 | Linux | 폴더에서 마우스 오른쪽 → "터미널에서 열기" |
 
@@ -321,6 +322,10 @@ python host/sim_demo.py --still --watchdog 300 --silent-after 20 --steps 60
 ---
 
 ## 잘 안 될 때
+
+**PowerShell 에서 `START.bat` 을 못 찾는다고 할 때**
+`.\START.bat` 처럼 **앞에 `.\` 를 붙여야** 합니다. PowerShell 은 현재 폴더의
+명령을 그냥 실행하지 않습니다. `python START.py` 로 해도 똑같이 됩니다.
 
 **`python` 을 알 수 없는 명령이라고 할 때**
 윈도우면 `py START.py`, macOS·Linux면 `python3 START.py` 로 해 보세요.

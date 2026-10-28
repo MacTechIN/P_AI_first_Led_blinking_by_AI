@@ -1,17 +1,42 @@
 @echo off
-REM 윈도우에서 두 번 눌러 실행합니다. 터미널을 몰라도 됩니다.
+REM Double-click to run. ASCII only, CRLF line endings -- see below.
+REM  * Korean text must NOT live here: cmd.exe reads .bat in the OEM
+REM    codepage, so UTF-8 Hangul turns into mojibake AND breaks parsing.
+REM  * LF-only endings make cmd.exe swallow the first character of a
+REM    line (echo. becomes cho.). The repo pins CRLF via .gitattributes.
+chcp 65001 >nul 2>&1
 setlocal
 cd /d "%~dp0"
+set "PYTHONIOENCODING=utf-8"
+set "PYTHONUTF8=1"
 
-where py >nul 2>&1 && (py -3 START.py %* & goto done)
-where python >nul 2>&1 && (python START.py %* & goto done)
-where python3 >nul 2>&1 && (python3 START.py %* & goto done)
+where py >nul 2>&1
+if not errorlevel 1 goto usepy
+where python >nul 2>&1
+if not errorlevel 1 goto usepython
+where python3 >nul 2>&1
+if not errorlevel 1 goto usepython3
+goto nopython
 
+:usepy
+py -3 "%~dp0START.py" %*
+goto done
+
+:usepython
+python "%~dp0START.py" %*
+goto done
+
+:usepython3
+python3 "%~dp0START.py" %*
+goto done
+
+:nopython
 echo.
-echo 파이썬을 찾지 못했습니다.
-echo 이 컴퓨터에 파이썬이 설치되어 있지 않은 것입니다. 강사에게 말씀하세요.
+echo [!] Python was not found on this PC.
+echo     Please ask your instructor. (Python 3.10 or newer)
 echo.
 
 :done
 echo.
-pause
+echo Press any key to close this window...
+pause >nul

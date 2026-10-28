@@ -1,0 +1,4 @@
+# 윈도우 배치 파일은 CRLF 여야 한다.
+# LF 로 들어가면 cmd.exe 가 줄 첫 글자를 먹어 `echo.` 이 `cho.` 가 된다 —
+# 실제로 학생 PC 에서 그렇게 깨졌다.
+*.bat text eol=crlf

@@ -124,3 +124,38 @@ def test_the_manual_states_the_measured_step_counts():
     manual = (ROOT / "docs" / "labs" / "STUDENT.md").read_text()
     assert "288 스텝" in manual
     assert "240 스텝" not in manual
+
+
+# --- 윈도우 실행기 ---
+#
+# 이 보드에서는 윈도우를 돌릴 수 없다. 그래서 **형식만** 고정한다 —
+# 실제 동작은 윈도우 PC 에서 확인해야 하고, 한 번 깨진 적이 있다.
+
+
+def test_the_batch_file_is_ascii_only():
+    """cmd.exe 는 .bat 을 OEM 코드페이지로 읽는다.
+
+    UTF-8 한글을 넣었다가 학생 PC 에서 `?뚯씠?ъ씠` 로 깨졌고, 깨진 바이트가
+    명령 해석까지 망가뜨렸다. 한글 안내는 전부 START.py 가 맡는다.
+    """
+    raw = (ROOT / "tools" / "START.bat").read_bytes()
+    raw.decode("ascii")          # 실패하면 여기서 터진다
+
+
+def test_the_batch_file_uses_crlf():
+    """LF 만 있으면 cmd.exe 가 줄 첫 글자를 먹는다 — `echo.` 이 `cho.` 가 됐다."""
+    raw = (ROOT / "tools" / "START.bat").read_bytes()
+    assert raw.count(b"\r\n") > 10
+    assert raw.count(b"\n") == raw.count(b"\r\n"), "LF 단독 줄이 섞여 있다"
+
+
+def test_the_batch_file_avoids_errorlevel_inside_parentheses():
+    """`if %errorlevel%` 를 괄호 블록 안에 쓰면 구문 분석 시점에 펼쳐져 늘 같은 값이다."""
+    text = (ROOT / "tools" / "START.bat").read_text()
+    assert "%errorlevel%" not in text
+    assert "if not errorlevel 1" in text
+
+
+def test_gitattributes_pins_the_line_endings():
+    """고쳐 놓아도 git 이 LF 로 되돌리면 같은 일이 반복된다."""
+    assert "*.bat text eol=crlf" in (ROOT / ".gitattributes").read_text()

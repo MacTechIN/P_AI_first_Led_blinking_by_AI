@@ -6,11 +6,15 @@
 
 USB 의 `pai-sim` 폴더를 각자의 PC 아무 데나 복사하고, 그 폴더에서:
 
+**윈도우** — `START.bat` 을 두 번 누릅니다. PowerShell 에서 칠 때는
+`.\START.bat` (앞의 `.\` 필수).
+
+**macOS · Linux**
 ```
 python3 START.py
 ```
 
-윈도우에서 `python3` 가 없다고 하면 `python START.py` 로 해 보세요.
+윈도우에서 직접 치려면 `python START.py` 입니다.
 
 처음 한 번은 `numpy` 를 USB 안의 파일로 설치합니다. 인터넷을 쓰지 않습니다.
 
