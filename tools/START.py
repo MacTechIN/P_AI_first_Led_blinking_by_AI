@@ -57,11 +57,17 @@ def ensure_numpy():
         say("  설치했습니다.")
         return True
 
-    say("✕ 설치하지 못했습니다.",
-        f"  이 컴퓨터: 파이썬 {sys.version_info.major}.{sys.version_info.minor} · "
-        f"{sys.platform}",
-        "  USB 의 wheels/ 에 맞는 파일이 없는 경우입니다. 강사에게 보여 주세요.",
-        "", r.stdout[-400:] or r.stderr[-400:])
+    tag = f"cp{sys.version_info.major}{sys.version_info.minor}"
+    have = sorted({w.name.split("-")[2] for w in wheels.glob("*.whl")
+                   if len(w.name.split("-")) > 2})
+    say("✕ numpy 를 설치하지 못했습니다.",
+        f"  이 PC: 파이썬 {sys.version_info.major}.{sys.version_info.minor}"
+        f" ({tag}) · {sys.platform}",
+        f"  USB 에 있는 것: {', '.join(have) or '(없음)'}",
+        "",
+        "  이 두 줄을 강사에게 그대로 보여 주세요.",
+        "  맞는 파일이 USB 에 없다는 뜻이고, 강사가 받아 두면 됩니다.",
+        "", (r.stderr or r.stdout)[-300:])
     return False
 
 

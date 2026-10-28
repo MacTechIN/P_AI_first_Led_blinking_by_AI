@@ -279,8 +279,8 @@ readable is not hidden, so an instructor keeps their own.
 ## Offline student bundle
 
 The classroom has no network, so the simulator ships on a USB stick:
-`./tools/make_bundle.py --wheels <dir> --out dist` produces `pai-sim.zip` (~162MB with
-numpy wheels for 11 platform/version combinations), and a student copies the folder to
+`./tools/make_bundle.py --wheels <dir> --out dist` produces `pai-sim.zip` (~217MB with
+numpy wheels for Python 3.10-3.13 on four platforms), and a student copies the folder to
 their own PC and runs `python START.py` (or double-clicks `START.bat` on Windows),
 which installs numpy from the bundle and self-checks before showing the four steps.
 `docs/labs/STUDENT.md` ships as the bundle's `MANUAL.md` and quotes the real output of
