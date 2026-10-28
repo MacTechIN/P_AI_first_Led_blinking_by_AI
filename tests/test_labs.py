@@ -285,3 +285,89 @@ def test_lecture_outline_keeps_failures_in_the_short_version():
 
     text = Path("docs/lecture/ppt-outline.md").read_text(encoding="utf-8")
     assert "S8(7B 사망)과 S26(위치 실패)은 빼지 않는다" in text
+
+
+# --- README (저장소의 현관) ---
+
+
+def test_readme_links_resolve():
+    """현관에서 끊긴 링크를 만나면 그 뒤는 안 읽는다."""
+    import re
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parent.parent
+    text = (root / "README.md").read_text(encoding="utf-8")
+    broken = [link for link in re.findall(r"\]\(([^)]+)\)", text)
+              if not link.startswith(("http://", "https://", "#"))
+              and not (root / link).exists()]
+    assert not broken, f"끊긴 링크: {broken}"
+
+
+def test_readme_states_the_current_wiring():
+    """배선이 바뀌면 README 부터 고쳐야 한다. 안 고치면 여기서 걸린다."""
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parent.parent
+    readme = (root / "README.md").read_text(encoding="utf-8")
+    ino = (root / "arduino" / "rgb_led" / "rgb_led.ino").read_text(encoding="utf-8")
+
+    import re
+    pins = {c: int(re.search(rf"const uint8_t {c}_PIN = (\d+);", ino).group(1))
+            for c in ("RED", "GREEN", "BLUE")}
+    assert f"R={pins['RED']}, G={pins['GREEN']}, B={pins['BLUE']}" in readme, \
+        f"README 의 핀 표기가 펌웨어({pins})와 다르다"
+
+
+def test_readme_points_at_the_manuals():
+    """어느 독자든 자기 문서를 찾을 수 있어야 한다."""
+    from pathlib import Path
+
+    readme = (Path(__file__).resolve().parent.parent / "README.md").read_text(
+        encoding="utf-8")
+    for doc in ("docs/labs/STUDENT.md", "docs/labs/INSTRUCTOR.md",
+                "docs/lecture/presenter-script.md", "docs/labs/OFFLINE.md",
+                "docs/curriculum.md"):
+        assert doc in readme, f"README 가 {doc} 를 가리키지 않는다"
+
+
+# --- README (저장소의 현관) ---
+
+
+def test_readme_links_resolve():
+    """현관에서 끊긴 링크를 만나면 그 뒤는 안 읽는다."""
+    import re
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parent.parent
+    text = (root / "README.md").read_text(encoding="utf-8")
+    broken = [link for link in re.findall(r"\]\(([^)]+)\)", text)
+              if not link.startswith(("http://", "https://", "#"))
+              and not (root / link).exists()]
+    assert not broken, f"끊긴 링크: {broken}"
+
+
+def test_readme_states_the_current_wiring():
+    """배선이 바뀌면 README 부터 고쳐야 한다. 안 고치면 여기서 걸린다."""
+    import re
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parent.parent
+    readme = (root / "README.md").read_text(encoding="utf-8")
+    ino = (root / "arduino" / "rgb_led" / "rgb_led.ino").read_text(encoding="utf-8")
+
+    pins = {c: int(re.search(rf"const uint8_t {c}_PIN = (\d+);", ino).group(1))
+            for c in ("RED", "GREEN", "BLUE")}
+    assert f"R={pins['RED']}, G={pins['GREEN']}, B={pins['BLUE']}" in readme, \
+        f"README 의 핀 표기가 펌웨어({pins})와 다르다"
+
+
+def test_readme_points_at_the_manuals():
+    """어느 독자든 자기 문서를 찾을 수 있어야 한다."""
+    from pathlib import Path
+
+    readme = (Path(__file__).resolve().parent.parent / "README.md").read_text(
+        encoding="utf-8")
+    for doc in ("docs/labs/STUDENT.md", "docs/labs/INSTRUCTOR.md",
+                "docs/lecture/presenter-script.md", "docs/labs/OFFLINE.md",
+                "docs/curriculum.md"):
+        assert doc in readme, f"README 가 {doc} 를 가리키지 않는다"

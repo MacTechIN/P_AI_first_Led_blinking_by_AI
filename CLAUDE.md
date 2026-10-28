@@ -61,6 +61,7 @@ host/leaderboard.py               grade every team on public + hidden, four colu
 host/verify_rgb.py                closed-loop colour check: commanded vs photographed
 tests/                            pytest suite; runs without a camera attached
 Makefile                          build / flash / monitor wrappers around arduino-cli
+README.md                         front door: what this is, how to run it, where the manuals are
 docs/project_difinition.md        project definition (source of requirements)
 docs/development_plan.md          vertical-slice plan; start here for what to build next
 docs/curriculum.md                what this is ultimately for: a teaching curriculum
@@ -124,19 +125,31 @@ must enable it at startup. Every command feeds it, but only a command that drive
 output clears the trip, so `STATE` can observe a trip instead of erasing it, and a tripped
 device stays safe until something explicitly commands it back.
 
-RGB LED on **B=9, R=10, G=11** (all PWM), plus `RGB <r> <g> <b>`. Pin 13 mirrors on/off.
-Range limits are enforced in firmware as well as in `control/commands.py` — the host check
-is a convenience, firmware is the boundary a model cannot cross (ADR-0003).
+RGB LED on **R=9, G=11, B=10** (all PWM), common anode on **5V**, **220R on each of the
+three legs** — not one on the common. Gains are a flat 255/255/255; no compensation is
+needed with this wiring. Pin 13 mirrors on/off. Range limits are enforced in firmware as
+well as in `control/commands.py` — the host check is a convenience, firmware is the
+boundary a model cannot cross (ADR-0003).
 
-Two hardware quirks are compensated in firmware, both established by photographing the
-LED (see `docs/tech/notes/rgb-led-calibration.md`):
+Verified by photographing the LED: **6/6 colour names, mean hue error 7.0**
+(`docs/tech/notes/rgb-rewire-2026-10-28.md`). Four faults were cleared to get there, and
+each is worth knowing before touching the wiring:
 
 - **Common anode**: a LOW pin lights the channel, so duties are inverted on the way out.
   Before this, `RGB 255 0 0` glowed cyan and `RGB 255 255 255` went dark.
-- **One shared current-limiting resistor**: the dies compete for a fixed current and the
-  lowest-forward-voltage one wins (red beats green beats blue), so `RGB 255 255 0` came
-  out pure red. `GAIN_R/G/B` hold the stronger dies back. The real fix is a resistor per
-  channel; with that wiring, set all three gains to 255.
+- **One shared resistor makes mixtures impossible.** The dies compete for a fixed current
+  and the lowest-forward-voltage one wins (red beats green beats blue), so `RGB 255 255 0`
+  photographed as pure red. With a 10k common resistor the current is ~0.1 mA, where the
+  diode curve is near-vertical: gains reached 4/6 and stuck, because **duty divides time
+  and cannot change which die wins an instant**. One resistor per channel is the fix, not
+  a workaround.
+- **3.3V will not light blue at all.** Its forward voltage exceeds 3.1V, leaving nothing
+  across the resistor. Red still works, so it looks like "only blue is broken".
+- **A dead channel is isolated by swapping two pins at the header**, which separates "the
+  pin is dead" from "the LED path is dead" in one move. Ours was a contact fault.
+
+The simulator (`sim/`) still models the **old** shared-resistor rig on purpose — that is
+the failure it exists to reproduce. `shared_resistor=False` gives the corrected wiring.
 
 Two constraints worth knowing before debugging serial issues:
 
