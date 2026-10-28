@@ -54,7 +54,7 @@ def test_tape_round_trips(tmp_path):
 
 def test_a_tape_from_a_different_thumbnail_size_is_refused(tmp_path):
     p = tmp_path / "t.json"
-    p.write_text(json.dumps({"thumb": [4, 4], "entries": []}))
+    p.write_text(json.dumps({"thumb": [4, 4], "entries": []}), encoding="utf-8")
     with pytest.raises(Exception, match="썸네일 크기"):
         Tape.load(p)
 

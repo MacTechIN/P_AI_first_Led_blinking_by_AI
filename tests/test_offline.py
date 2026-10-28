@@ -19,7 +19,8 @@ def run_without_cv2(code: str, cwd: Path, tmp_path: Path):
     """cv2 임포트가 실패하는 환경에서 코드를 돌린다."""
     stub = tmp_path / "nocv2"
     stub.mkdir(exist_ok=True)
-    (stub / "cv2.py").write_text('raise ImportError("cv2 없음 (학생 노트북)")\n')
+    (stub / "cv2.py").write_text(
+        'raise ImportError("cv2 없음")\n', encoding="utf-8")
     env = {"PYTHONPATH": f"{stub}:{ROOT}", "PATH": "/usr/bin:/bin",
            "HOME": str(tmp_path)}
     return subprocess.run([sys.executable, "-c", textwrap.dedent(code)],
@@ -74,7 +75,7 @@ def test_data_is_found_from_any_directory(tmp_path):
 def test_the_student_scripts_do_not_need_the_instructor_only_modules(tmp_path):
     """꾸러미에는 실물 장비용 스크립트가 빠진다. 그걸 임포트하면 깨진다."""
     for script in ("sim_demo.py", "scenario_check.py", "leaderboard.py"):
-        text = (ROOT / "host" / script).read_text()
+        text = (ROOT / "host" / script).read_text(encoding="utf-8")
         assert "from rig_worker" not in text, f"{script} 가 rig_worker 를 쓴다"
         assert "import rig_worker" not in text
 
@@ -84,7 +85,7 @@ def test_hardware_only_imports_stay_lazy(module):
     """`gi`(젯슨 카메라)·`serial`(아두이노) 은 학생 노트북에 없다."""
     for pkg in ("sim", "control", "perception"):
         for path in (ROOT / pkg).rglob("*.py"):
-            for line in path.read_text().splitlines():
+            for line in path.read_text(encoding="utf-8").splitlines():
                 stripped = line.strip()
                 if stripped.startswith((f"import {module}", f"from {module}")):
                     assert line.startswith(" "), f"{path.name}: 최상위 임포트 — {stripped}"
@@ -95,7 +96,7 @@ def test_hardware_only_imports_stay_lazy(module):
 
 def test_the_manual_only_uses_commands_that_exist():
     """매뉴얼이 없는 스크립트를 시키면 학생이 거기서 멈춘다."""
-    manual = (ROOT / "docs" / "labs" / "STUDENT.md").read_text()
+    manual = (ROOT / "docs" / "labs" / "STUDENT.md").read_text(encoding="utf-8")
     import re
 
     for script in set(re.findall(r"python3? (host/[\w./]+\.py)", manual)):
@@ -103,7 +104,7 @@ def test_the_manual_only_uses_commands_that_exist():
 
 
 def test_the_manual_and_the_bundle_agree_on_the_entry_point():
-    manual = (ROOT / "docs" / "labs" / "STUDENT.md").read_text()
+    manual = (ROOT / "docs" / "labs" / "STUDENT.md").read_text(encoding="utf-8")
     assert "START.py" in manual
     assert (ROOT / "tools" / "START.py").is_file()
     assert (ROOT / "tools" / "START.bat").is_file()
@@ -111,7 +112,7 @@ def test_the_manual_and_the_bundle_agree_on_the_entry_point():
 
 def test_the_bundle_ships_the_manual_and_the_windows_launcher():
     """윈도우 사용자가 터미널을 몰라도 시작할 수 있어야 한다."""
-    maker = (ROOT / "tools" / "make_bundle.py").read_text()
+    maker = (ROOT / "tools" / "make_bundle.py").read_text(encoding="utf-8")
     assert "STUDENT.md" in maker and "MANUAL.md" in maker
     assert "START.bat" in maker
 
@@ -121,7 +122,7 @@ def test_the_manual_states_the_measured_step_counts():
 
     288 은 24초 × 12fps 다. 처음에 240 으로 적었다가 실제와 달랐다.
     """
-    manual = (ROOT / "docs" / "labs" / "STUDENT.md").read_text()
+    manual = (ROOT / "docs" / "labs" / "STUDENT.md").read_text(encoding="utf-8")
     assert "288 스텝" in manual
     assert "240 스텝" not in manual
 
@@ -151,11 +152,74 @@ def test_the_batch_file_uses_crlf():
 
 def test_the_batch_file_avoids_errorlevel_inside_parentheses():
     """`if %errorlevel%` 를 괄호 블록 안에 쓰면 구문 분석 시점에 펼쳐져 늘 같은 값이다."""
-    text = (ROOT / "tools" / "START.bat").read_text()
+    text = (ROOT / "tools" / "START.bat").read_text(encoding="utf-8")
     assert "%errorlevel%" not in text
     assert "if not errorlevel 1" in text
 
 
+def test_the_batch_file_does_not_force_python_io_encoding():
+    """`PYTHONIOENCODING` 은 윈도우 콘솔 전용 출력 경로를 **끈다.**
+
+    파이썬은 진짜 콘솔에 쓸 때 WriteConsoleW 를 써서 코드페이지와 무관하게
+    유니코드를 바르게 내보낸다. 이 변수를 주면 그 경로 대신 바이트를
+    코드페이지로 변환하게 되고, 학생 PC 에서 한글이 `?쒕??젅?댄꽣` 로 깨졌다.
+    """
+    # 주석(REM)에는 왜 쓰지 않는지가 적혀 있다. **명령 줄만** 본다 —
+    # 처음에 전체 본문을 검사했다가 제 주석에 걸려 실패했다.
+    lines = [ln.strip() for ln in (ROOT / "tools" / "START.bat").read_text(encoding="utf-8").splitlines()]
+    commands = [ln for ln in lines if ln and not ln.upper().startswith("REM")]
+    body = "\n".join(commands)
+    assert "PYTHONIOENCODING" not in body
+    assert "chcp" not in body          # 콘솔 코드페이지도 건드리지 않는다
+
+
+def test_a_diagnostic_exists_for_encoding_reports():
+    """깨짐 신고를 받으면 추측하지 말고 이것부터 돌리게 한다."""
+    diag = ROOT / "tools" / "DIAG.bat"
+    assert diag.is_file()
+    raw = diag.read_bytes()
+    raw.decode("ascii")
+    assert raw.count(b"\n") == raw.count(b"\r\n")
+
+
 def test_gitattributes_pins_the_line_endings():
     """고쳐 놓아도 git 이 LF 로 되돌리면 같은 일이 반복된다."""
-    assert "*.bat text eol=crlf" in (ROOT / ".gitattributes").read_text()
+    assert "*.bat text eol=crlf" in (ROOT / ".gitattributes").read_text(encoding="utf-8")
+
+
+def test_every_text_file_is_read_and_written_as_utf8():
+    """인코딩을 적지 않으면 파이썬은 **그 PC의 지역 인코딩**을 쓴다.
+
+    한국어 윈도우는 cp949 다. 우리 파일은 전부 UTF-8 이라, 학생이 1단계를
+    누르는 순간 `'cp949' codec can't decode byte 0x84` 로 멈췄다. 리눅스에서는
+    기본이 UTF-8 이라 여기서는 영원히 드러나지 않는다 — 그래서 시험으로 막는다.
+    """
+    import ast
+
+    bad = []
+    for path in sorted(ROOT.rglob("*.py")):
+        if any(part in {".venv", "__pycache__", "dist", "node_modules"}
+               for part in path.parts):
+            continue
+        for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+            if not isinstance(node, ast.Call):
+                continue
+            func = node.func
+            name = (func.attr if isinstance(func, ast.Attribute)
+                    else func.id if isinstance(func, ast.Name) else None)
+            if name not in ("read_text", "write_text", "open"):
+                continue
+            if "encoding" in {kw.arg for kw in node.keywords}:
+                continue
+            if name == "open":
+                if isinstance(func, ast.Attribute) and not node.args and not node.keywords:
+                    continue                      # FrameSource.open() 같은 자체 메서드
+                if node.args[1:]:
+                    mode = node.args[1]
+                    if isinstance(mode, ast.Constant) and "b" in str(mode.value):
+                        continue                  # 바이너리는 해당 없음
+                elif isinstance(func, ast.Name) and not node.args:
+                    continue
+            bad.append(f"{path.relative_to(ROOT)}:{node.lineno} {name}()")
+
+    assert not bad, "encoding=\"utf-8\" 이 빠졌다:\n  " + "\n  ".join(bad)

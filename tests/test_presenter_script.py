@@ -24,7 +24,7 @@ def slide_count() -> int:
 def scripted_slides() -> set[int]:
     """'### 12.' 또는 '### 51–53.' 형태의 제목에서 번호를 모은다."""
     out: set[int] = set()
-    for line in SCRIPT.read_text().splitlines():
+    for line in SCRIPT.read_text(encoding="utf-8").splitlines():
         m = re.match(r"### (\d+)(?:[–-](\d+))?\.", line)
         if m:
             lo = int(m.group(1))
@@ -45,7 +45,7 @@ def test_the_script_does_not_refer_to_slides_that_do_not_exist():
 
 def test_the_time_budget_adds_up_to_the_stated_total():
     """표의 누적이 105분으로 끝나야 한다. 틀리면 발표가 늦어진다."""
-    text = SCRIPT.read_text()
+    text = SCRIPT.read_text(encoding="utf-8")
     # 마크다운 표의 구분선(|---|)이 아니라 **구획 구분선**에서 잘라야 한다.
     block = text.split("## 시간 배분")[1].split("\n---\n")[0]
     rows = re.findall(r"\|\s*(\d+)\s*분\s*\|\s*(\d+)\s*\|", block)
@@ -69,7 +69,7 @@ def test_the_time_budget_adds_up_to_the_stated_total():
 ])
 def test_the_headline_figures_appear_in_the_script(figure):
     """강사가 말할 숫자가 빠져 있으면 '대충' 말하게 된다."""
-    assert figure in SCRIPT.read_text(), f"{figure} 가 스크립트에 없다"
+    assert figure in SCRIPT.read_text(encoding="utf-8"), f"{figure} 가 스크립트에 없다"
 
 
 def test_the_autoexposure_direction_is_not_reversed():
@@ -78,6 +78,6 @@ def test_the_autoexposure_direction_is_not_reversed():
     처음 쓸 때 '고정하니 3.2배 커졌다' 로 적었다가 원 기록과 반대였다.
     발표 중에 거꾸로 말하면 그 장 전체가 무너진다.
     """
-    text = SCRIPT.read_text()
+    text = SCRIPT.read_text(encoding="utf-8")
     assert "왜곡" in text
     assert "고정하자 신호가 **3.2배** 커졌" not in text

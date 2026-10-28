@@ -33,7 +33,7 @@ SERVO = {
 
 @pytest.fixture
 def reg(tmp_path):
-    (tmp_path / "servo.json").write_text(json.dumps(SERVO))
+    (tmp_path / "servo.json").write_text(json.dumps(SERVO), encoding="utf-8")
     return Registry.load(tmp_path)
 
 
@@ -56,7 +56,7 @@ def test_adding_a_device_needs_no_code(tmp_path):
             "wire": "GRIP {force}",
             "args": {"force": {"type": "int", "min": 0, "max": 100}},
         }},
-    }))
+    }), encoding="utf-8")
     registry = Registry.load(tmp_path)
 
     # 1. 모델이 보는 스키마에 나타난다
@@ -162,7 +162,7 @@ def test_defaults_fill_in(tmp_path):
         "commands": {"go": {"wire": "GO {speed}",
                             "args": {"speed": {"type": "int", "min": 0, "max": 9,
                                                "default": 3}}}},
-    }))
+    }), encoding="utf-8")
     r = Registry.load(tmp_path)
     assert r.validate({"device": "d", "command": "go"}).args == {"speed": 3}
 
@@ -198,7 +198,7 @@ def test_declaration_without_wire_is_rejected(tmp_path):
     (tmp_path / "bad.json").write_text(json.dumps({
         "id": "b", "kind": "k", "transport": {"type": "null"},
         "commands": {"go": {"args": {}}},
-    }))
+    }), encoding="utf-8")
     with pytest.raises(ContractError, match="wire"):
         Registry.load(tmp_path)
 
@@ -208,7 +208,7 @@ def test_enum_without_choices_is_rejected(tmp_path):
         "id": "b", "kind": "k", "transport": {"type": "null"},
         "commands": {"go": {"wire": "GO {m}",
                             "args": {"m": {"type": "enum"}}}},
-    }))
+    }), encoding="utf-8")
     with pytest.raises(ContractError, match="choices"):
         Registry.load(tmp_path)
 
@@ -222,7 +222,7 @@ def test_unsupported_transport_is_rejected(tmp_path):
     (tmp_path / "d.json").write_text(json.dumps({
         "id": "d", "kind": "k", "transport": {"type": "carrier-pigeon"},
         "commands": {"go": {"wire": "GO", "args": {}}},
-    }))
+    }), encoding="utf-8")
     r = Registry.load(tmp_path)
     with pytest.raises(ContractError, match="전송 방식"):
         ContractActuator(r).apply(r.validate({"device": "d", "command": "go"}))
@@ -237,7 +237,7 @@ def test_planned_device_must_not_have_a_real_transport(tmp_path):
         "id": "ghost", "kind": "servo", "status": "planned",
         "transport": {"type": "serial", "port": "/dev/ttyACM0"},
         "commands": {"go": {"wire": "GO", "args": {}}},
-    }))
+    }), encoding="utf-8")
     with pytest.raises(ContractError, match="null 이 아니다"):
         Registry.load(tmp_path)
 
@@ -247,7 +247,7 @@ def test_planned_device_is_marked_in_the_prompt(tmp_path):
         "id": "ghost", "kind": "servo", "status": "planned",
         "description": "future servo", "transport": {"type": "null"},
         "commands": {"go": {"wire": "GO", "args": {}}},
-    }))
+    }), encoding="utf-8")
     assert "[not wired yet]" in Registry.load(tmp_path).describe()
 
 

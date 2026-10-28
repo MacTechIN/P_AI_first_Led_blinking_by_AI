@@ -22,7 +22,7 @@ def _copy_capabilities(dst):
     from pathlib import Path
 
     for f in Path("capabilities").glob("*.json"):
-        (dst / f.name).write_text(f.read_text())
+        (dst / f.name).write_text(f.read_text(encoding="utf-8"), encoding="utf-8")
 
 
 # --- 모듈 2 (labs/03-perception.md) ---
@@ -78,7 +78,7 @@ def test_lab06_buzzer_can_be_added_with_no_code(tmp_path):
             "args": {"hz": {"type": "int", "min": 100, "max": 5000},
                      "ms": {"type": "int", "min": 10, "max": 2000, "default": 200}},
         }},
-    }))
+    }), encoding="utf-8")
     reg = Registry.load(tmp_path)
     assert len(reg.tool_schema()["oneOf"]) == 6, "실습서가 6옵션이라고 적고 있다"
     call = reg.validate({"device": "buzzer", "command": "beep", "args": {"hz": 1000}})
@@ -90,7 +90,7 @@ def test_lab06_planned_device_with_real_transport_is_refused(tmp_path):
         "id": "ghost", "kind": "servo", "status": "planned",
         "transport": {"type": "serial", "port": "/dev/ttyACM0"},
         "commands": {"go": {"wire": "GO", "args": {}}},
-    }))
+    }), encoding="utf-8")
     with pytest.raises(ContractError):
         Registry.load(tmp_path)
 
@@ -113,7 +113,7 @@ def test_curriculum_links_resolve():
     import re
     from pathlib import Path
 
-    text = Path("docs/curriculum.md").read_text()
+    text = Path("docs/curriculum.md").read_text(encoding="utf-8")
     for link in re.findall(r"\]\((labs/[^)]+)\)", text):
         assert (Path("docs") / link).exists(), f"끊긴 링크: {link}"
 
@@ -124,7 +124,7 @@ def test_curriculum_links_resolve():
 def _exercise_count(path):
     import re
 
-    text = path.read_text()
+    text = path.read_text(encoding="utf-8")
     if "## 연습 문제" not in text:
         return 0
     block = text.split("## 연습 문제")[1].split("## 교훈")[0]
@@ -141,7 +141,7 @@ def test_every_exercise_has_an_answer():
                   if p.name[0].isdigit() and p.name != "00-setup.md")
     asked = sum(_exercise_count(f) for f in labs)
     answered = len(re.findall(
-        r"^\*\*\d+\. ", Path("docs/labs/INSTRUCTOR.md").read_text(), re.M))
+        r"^\*\*\d+\. ", Path("docs/labs/INSTRUCTOR.md").read_text(encoding="utf-8"), re.M))
     assert asked > 0
     assert answered == asked, f"문제 {asked}개, 해답 {answered}개"
 
@@ -149,7 +149,7 @@ def test_every_exercise_has_an_answer():
 def test_instructor_guide_covers_every_module():
     from pathlib import Path
 
-    text = Path("docs/labs/INSTRUCTOR.md").read_text()
+    text = Path("docs/labs/INSTRUCTOR.md").read_text(encoding="utf-8")
     for module in ("모듈 0", "모듈 1", "모듈 2", "모듈 3", "모듈 4", "모듈 5", "모듈 6"):
         assert f"### {module}" in text, f"{module} 해설이 없다"
 
@@ -159,7 +159,7 @@ def test_instructor_guide_references_resolve():
     import re
     from pathlib import Path
 
-    text = Path("docs/labs/INSTRUCTOR.md").read_text()
+    text = Path("docs/labs/INSTRUCTOR.md").read_text(encoding="utf-8")
     for ref in re.findall(r"`(docs/tech/notes/[\w-]+\.md)`", text):
         assert Path(ref).exists(), f"없는 문서: {ref}"
 
@@ -223,7 +223,7 @@ def test_lab07_firmware_declares_a_watchdog():
     """실습서가 WATCHDOG 명령을 쓴다. 펌웨어에 실제로 있어야 한다."""
     from pathlib import Path
 
-    sketch = Path("arduino/rgb_led/rgb_led.ino").read_text()
+    sketch = Path("arduino/rgb_led/rgb_led.ino").read_text(encoding="utf-8")
     assert 'WATCHDOG ' in sketch
     assert "enterSafeState" in sketch
     assert "watchdogMs = 0" in sketch, "기본값은 꺼져 있어야 한다"
@@ -240,7 +240,7 @@ def test_lecture_outline_citations_resolve():
     import re
     from pathlib import Path
 
-    text = Path("docs/lecture/ppt-outline.md").read_text()
+    text = Path("docs/lecture/ppt-outline.md").read_text(encoding="utf-8")
     refs = set(re.findall(
         r"`(docs/[\w/\-\.]+|tech/notes/[\w\-\.]+|labs/[\w\-\.]+|visuals/[\w\-\.]+)`",
         text))
@@ -252,7 +252,7 @@ def test_lecture_outline_citations_resolve():
 def test_lecture_outline_covers_all_chapters():
     from pathlib import Path
 
-    text = Path("docs/lecture/ppt-outline.md").read_text()
+    text = Path("docs/lecture/ppt-outline.md").read_text(encoding="utf-8")
     for ch in ("Chapter 1 — 패러다임 시프트", "Chapter 2 — P-AI 아키텍처 해부",
                "Chapter 3 — P-AI 실습", "Chapter 4 — P-AI 실전 적용",
                "Chapter 5 — 실습 워크시트"):
@@ -263,7 +263,7 @@ def test_lecture_outline_follows_the_reference_format():
     """참조 교재(AX 컨설팅방법론)의 구조 요소를 갖추고 있어야 한다."""
     from pathlib import Path
 
-    text = Path("docs/lecture/ppt-outline.md").read_text()
+    text = Path("docs/lecture/ppt-outline.md").read_text(encoding="utf-8")
     for element in ("M1 — 표지", "M2 — Chapter 간지", "M3 — 개념 슬라이드",
                     "M4 — 산출물 슬라이드", "M5 — 워크시트"):
         assert element in text, f"마스터 {element} 정의가 없다"
@@ -274,7 +274,7 @@ def test_lecture_outline_marks_the_failure_slides():
     """실패 사례 슬라이드가 '빼면 안 되는 것'으로 표시돼 있어야 한다."""
     from pathlib import Path
 
-    text = Path("docs/lecture/ppt-outline.md").read_text()
+    text = Path("docs/lecture/ppt-outline.md").read_text(encoding="utf-8")
     assert "빼면 안 되는 슬라이드" in text
     assert text.count("⭐") >= 8
 
@@ -283,5 +283,5 @@ def test_lecture_outline_keeps_failures_in_the_short_version():
     """축약판에서도 실패 사례를 빼지 않는다는 약속을 고정한다."""
     from pathlib import Path
 
-    text = Path("docs/lecture/ppt-outline.md").read_text()
+    text = Path("docs/lecture/ppt-outline.md").read_text(encoding="utf-8")
     assert "S8(7B 사망)과 S26(위치 실패)은 빼지 않는다" in text

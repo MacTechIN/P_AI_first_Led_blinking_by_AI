@@ -90,7 +90,7 @@ def main() -> None:
         avg = sum(r["ms"] for r in rows) / len(rows)
         print(f"일치 {hits}/{len(rows)} ({100*hits/len(rows):.0f}%)  평균 {avg:.0f}ms")
         if args.json:
-            Path(args.json).write_text(json.dumps(rows, ensure_ascii=False, indent=2))
+            Path(args.json).write_text(json.dumps(rows, ensure_ascii=False, indent=2), encoding="utf-8")
             print(f"저장: {args.json}")
 
 

@@ -70,7 +70,7 @@ class DecisionLog:
             if _write_jpeg(obs.image, self.directory / "frames" / name):
                 entry["frame"] = f"frames/{name}"
 
-        with self.path.open("a") as f:
+        with self.path.open("a", encoding="utf-8") as f:
             f.write(json.dumps(entry, ensure_ascii=False) + "\n")
         self._n += 1
         return entry
@@ -78,7 +78,7 @@ class DecisionLog:
     def entries(self) -> list[dict]:
         if not self.path.is_file():
             return []
-        return [json.loads(line) for line in self.path.read_text().splitlines() if line]
+        return [json.loads(line) for line in self.path.read_text(encoding="utf-8").splitlines() if line]
 
     def __len__(self) -> int:
         return self._n
@@ -122,5 +122,5 @@ def promote(entries: list[dict], source: str | Path, target: str | Path,
         })
     if cases:
         (dst / "cases.json").write_text(
-            json.dumps(cases, ensure_ascii=False, indent=2) + "\n")
+            json.dumps(cases, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return cases

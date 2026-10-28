@@ -98,14 +98,14 @@ class Tape:
                  "note": e.note}
                 for e in self.entries
             ],
-        }, ensure_ascii=False, indent=1))
+        }, ensure_ascii=False, indent=1), encoding="utf-8")
 
     @classmethod
     def load(cls, path: str | Path) -> "Tape":
         p = Path(path)
         if not p.is_file():
             raise VlmError(f"기록이 없다: {p}")
-        raw = json.loads(p.read_text())
+        raw = json.loads(p.read_text(encoding="utf-8"))
         if tuple(raw.get("thumb", THUMB)) != THUMB:
             raise VlmError(f"{p}: 썸네일 크기가 다르다 {raw.get('thumb')} != {list(THUMB)}")
         tape = cls(source=raw.get("source", ""), model=raw.get("model", ""))

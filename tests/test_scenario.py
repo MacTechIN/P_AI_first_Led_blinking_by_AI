@@ -33,7 +33,7 @@ def test_shipped_scenarios_load():
 def test_broken_scenarios_are_refused(tmp_path, raw, msg):
     """잘못된 대본은 실습 중이 아니라 읽는 순간 걸려야 한다."""
     p = tmp_path / "bad.json"
-    p.write_text(json.dumps(raw))
+    p.write_text(json.dumps(raw), encoding="utf-8")
     with pytest.raises(ScenarioError, match=msg):
         load(p)
 

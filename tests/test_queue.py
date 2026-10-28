@@ -23,13 +23,13 @@ def submit(queue: Path, team: str, policy: str, *, scenario="basics",
     jid = f"2026-01-01T00-00-{len(pending_jobs(queue)):02d}_{team}"
     spec = {"id": jid, "team": team, "policy": policy, "scenario": scenario,
             "seconds": seconds, "fps": fps, "submitted": "t"}
-    (queue / "pending" / f"{jid}.json").write_text(json.dumps(spec))
+    (queue / "pending" / f"{jid}.json").write_text(json.dumps(spec), encoding="utf-8")
     return spec
 
 
 def write_policy(tmp: Path, name: str, body: str) -> str:
     p = tmp / f"{name}.py"
-    p.write_text(body)
+    p.write_text(body, encoding="utf-8")
     return str(p)
 
 

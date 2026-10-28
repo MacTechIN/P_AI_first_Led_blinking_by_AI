@@ -70,7 +70,7 @@ def run_job(spec: dict, *, real: bool, port: str, source_spec: str,
     scenarios = load_all(SCENARIOS)
     if spec["scenario"] not in scenarios:
         report["error"] = f"모르는 대본: {spec['scenario']}"
-        (out / "report.json").write_text(json.dumps(report, ensure_ascii=False, indent=1))
+        (out / "report.json").write_text(json.dumps(report, ensure_ascii=False, indent=1), encoding="utf-8")
         return report
 
     sc = scenarios[spec["scenario"]]
@@ -126,13 +126,13 @@ def run_job(spec: dict, *, real: bool, port: str, source_spec: str,
                  for k in rows[0] if k not in ("step", "t")}
         report["latency_ms"] = {k: round(v, 2) for k, v in stage.items()}
 
-    with (out / "timings.csv").open("w", newline="") as f:
+    with (out / "timings.csv").open("w", newline="", encoding="utf-8") as f:
         if rows:
             w = csv.DictWriter(f, fieldnames=list(rows[0]))
             w.writeheader()
             w.writerows(rows)
-    (out / "commands.log").write_text("\n".join(commands) + "\n")
-    (out / "report.json").write_text(json.dumps(report, ensure_ascii=False, indent=1))
+    (out / "commands.log").write_text("\n".join(commands) + "\n", encoding="utf-8")
+    (out / "report.json").write_text(json.dumps(report, ensure_ascii=False, indent=1), encoding="utf-8")
     return report
 
 
@@ -169,7 +169,7 @@ def main() -> None:
             time.sleep(args.poll)
             continue
 
-        spec = json.loads(job.read_text())
+        spec = json.loads(job.read_text(encoding="utf-8"))
         print(f"▶ {spec['id']}  팀 {spec['team']}  대본 {spec['scenario']}")
         t0 = time.perf_counter()
         report = run_job(spec, real=args.real, port=args.port,

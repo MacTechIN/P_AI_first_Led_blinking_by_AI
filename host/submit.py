@@ -46,7 +46,7 @@ def main() -> None:
             return
         print(f"대기 {len(jobs)}건")
         for i, j in enumerate(jobs, 1):
-            spec = json.loads(j.read_text())
+            spec = json.loads(j.read_text(encoding="utf-8"))
             print(f"  {i}. {spec['team']:8s} {spec['scenario']:8s} "
                   f"{spec['seconds']:.0f}초  {spec['submitted']}")
         return
@@ -67,7 +67,7 @@ def main() -> None:
         "submitted": datetime.now().isoformat(timespec="seconds"),
     }
     path = pending / f"{jid}.json"
-    path.write_text(json.dumps(spec, ensure_ascii=False, indent=1))
+    path.write_text(json.dumps(spec, ensure_ascii=False, indent=1), encoding="utf-8")
 
     ahead = len(pending_jobs(args.queue)) - 1
     print(f"제출됨: {jid}")

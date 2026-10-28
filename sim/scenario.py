@@ -154,7 +154,7 @@ def load(path: str | Path) -> Scenario:
     if not p.is_file():
         raise ScenarioError(f"대본이 없다: {p}")
     try:
-        raw = json.loads(p.read_text())
+        raw = json.loads(p.read_text(encoding="utf-8"))
     except ValueError as e:
         raise ScenarioError(f"{p}: JSON 오류 {e}") from e
     return _parse(raw, p.stem)

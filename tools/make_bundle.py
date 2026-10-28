@@ -50,6 +50,7 @@ def build(out: Path, wheels: Path | None) -> Path:
 
     shutil.copyfile(ROOT / "tools" / "START.py", stage / "START.py")
     shutil.copyfile(ROOT / "tools" / "START.bat", stage / "START.bat")
+    shutil.copyfile(ROOT / "tools" / "DIAG.bat", stage / "DIAG.bat")
     shutil.copyfile(ROOT / "tools" / "README-학생용.md", stage / "README.md")
 
     if wheels and wheels.is_dir():

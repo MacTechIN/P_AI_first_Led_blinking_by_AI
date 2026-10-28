@@ -1,14 +1,12 @@
 @echo off
-REM Double-click to run. ASCII only, CRLF line endings -- see below.
-REM  * Korean text must NOT live here: cmd.exe reads .bat in the OEM
-REM    codepage, so UTF-8 Hangul turns into mojibake AND breaks parsing.
-REM  * LF-only endings make cmd.exe swallow the first character of a
-REM    line (echo. becomes cho.). The repo pins CRLF via .gitattributes.
-chcp 65001 >nul 2>&1
+REM Double-click to run. ASCII only, CRLF endings.
+REM  * No Korean here: cmd.exe reads .bat in the OEM codepage.
+REM  * No PYTHONIOENCODING / chcp: Python writes to a real Windows
+REM    console through WriteConsoleW, which is Unicode-safe already.
+REM    Setting PYTHONIOENCODING turns that off and sends bytes through
+REM    the codepage instead -- that is how Hangul got mangled once.
 setlocal
 cd /d "%~dp0"
-set "PYTHONIOENCODING=utf-8"
-set "PYTHONUTF8=1"
 
 where py >nul 2>&1
 if not errorlevel 1 goto usepy

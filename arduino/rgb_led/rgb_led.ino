@@ -5,9 +5,9 @@
  * Blinking is non-blocking (millis()-based) so serial commands stay responsive.
  *
  * WIRING / PWM CAVEAT
- *   B = pin 9   (PWM)
- *   R = pin 10  (PWM)
+ *   R = pin 9   (PWM)
  *   G = pin 11  (PWM)
+ *   B = pin 10  (PWM)
  *
  * The module is COMMON ANODE: each cathode leg is driven by its pin while the
  * common leg sits at +5V, so a LOW pin lights the channel and a HIGH pin blanks
@@ -38,9 +38,9 @@
  * convenience, this one is the boundary a model cannot cross (ADR-0003).
  */
 
-const uint8_t RED_PIN = 10;    // PWM
+const uint8_t RED_PIN = 9;     // PWM
 const uint8_t GREEN_PIN = 11;  // PWM
-const uint8_t BLUE_PIN = 9;    // PWM (was 12, which is not PWM — see caveat)
+const uint8_t BLUE_PIN = 10;   // PWM
 const uint8_t MIRROR_PIN = LED_BUILTIN;
 
 const bool COMMON_ANODE = true;  // LOW lights the channel — see header
@@ -55,8 +55,8 @@ const bool COMMON_ANODE = true;  // LOW lights the channel — see header
 // This is a workaround, not a fix. The hardware fix is one resistor per channel
 // (220-330R on each of R, G, B) instead of one on the common leg; with that,
 // set all three gains to 255.
-const uint8_t GAIN_R = 120;
-const uint8_t GAIN_G = 200;
+const uint8_t GAIN_R = 255;
+const uint8_t GAIN_G = 255;
 const uint8_t GAIN_B = 255;
 const bool BLUE_IS_PWM = (BLUE_PIN == 3 || BLUE_PIN == 5 || BLUE_PIN == 6 ||
                           BLUE_PIN == 9 || BLUE_PIN == 10 || BLUE_PIN == 11);

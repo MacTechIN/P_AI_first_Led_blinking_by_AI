@@ -91,7 +91,7 @@ def load_cases(directory: str | Path) -> list[Case]:
     if not manifest.is_file():
         raise GoldenError(f"골든셋 정의가 없다: {manifest}")
     try:
-        raw = json.loads(manifest.read_text())
+        raw = json.loads(manifest.read_text(encoding="utf-8"))
     except ValueError as e:
         raise GoldenError(f"{manifest}: JSON 오류 {e}") from e
     if not isinstance(raw, list) or not raw:

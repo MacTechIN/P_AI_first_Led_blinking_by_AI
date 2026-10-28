@@ -118,11 +118,11 @@ def main() -> None:
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--reveal", action="store_true", help="끝나고 정답을 보여준다")
     p.add_argument("--watchdog", type=int, default=0, metavar="MS",
-                   help="워치독 주기(ms). 0 이면 꺼짐 — 펌웨어와 같은 기본값")
+                   help="워치독 주기(ms). 0 이면 꺼짐, 펌웨어와 같은 기본값")
     p.add_argument("--silent-after", type=int, default=0, metavar="N",
                    help="N 스텝 뒤 명령 전송을 멈춘다 (호스트가 죽은 상황)")
     p.add_argument("--still", action="store_true",
-                   help="색지를 바꾸지 않는다 — 정지 장면에서 전송 빈도를 센다")
+                   help="색지를 바꾸지 않는다. 정지 장면에서 전송 빈도를 센다")
     p.add_argument("--fps", type=float, default=12.0)
     p.add_argument("--no-preview", action="store_true")
     p.add_argument("--led-in-roi", action="store_true",
@@ -239,7 +239,7 @@ def main() -> None:
                 print(f"LED 발광  {world.emitted()}   "
                       f"(명령 {len(actuator.history)}회, "
                       f"시리얼 {actuator.wire_lines}줄)"
-                      + ("   ⚠ 워치독 트립 — 안전 상태" if world.tripped else ""))
+                      + ("   [!] 워치독 트립: 안전 상태" if world.tripped else ""))
                 time.sleep(0.0)
             else:
                 print(r.describe())
@@ -260,7 +260,7 @@ def main() -> None:
           f"(촬영 {s['capture_ms']:.1f} + 특징 {s['extract_ms']:.1f} "
           f"+ 판단 {s['decide_ms']:.1f} + 구동 {s['actuate_ms']:.1f})")
     print(f"명령 전송 {len(actuator.history)}회 / {len(results)} 스텝  "
-          f"— 시리얼이었다면 {actuator.wire_lines}줄")
+          f"- 시리얼이었다면 {actuator.wire_lines}줄")
 
     if not args.per_channel_resistor:
         print("\n혼합색을 명령하면 발광이 강한 다이 쪽으로 밀립니다. 공통 저항 하나를"

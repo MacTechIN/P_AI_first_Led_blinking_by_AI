@@ -183,7 +183,7 @@ class Registry:
         devices = []
         for f in sorted(path.glob("*.json")):
             try:
-                devices.append(Device.parse(json.loads(f.read_text())))
+                devices.append(Device.parse(json.loads(f.read_text(encoding="utf-8"))))
             except (ValueError, ContractError) as e:
                 raise ContractError(f"{f.name}: {e}") from e
         if not devices:
