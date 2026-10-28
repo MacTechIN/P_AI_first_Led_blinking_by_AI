@@ -42,6 +42,7 @@ class SimSource(FrameSource):
         self.jitter_px = jitter_px
         """카메라 흔들림. 정지 장면이라도 프레임마다 경계가 미세하게 움직인다."""
         self._rng = np.random.default_rng(seed)
+        self._next_at: float | None = None
 
     def _open(self) -> None:
         pass
@@ -51,7 +52,19 @@ class SimSource(FrameSource):
 
     def _grab(self) -> np.ndarray:
         if self._fps:
-            time.sleep(1.0 / self._fps)
+            # 고정 대기가 아니라 **마감까지 남은 만큼만** 쉰다. 고정으로 두면
+            # 한 프레임이 (계산 + 1/fps) 가 되어, 24초짜리 장면이 38초 걸렸다.
+            period = 1.0 / self._fps
+            now = time.monotonic()
+            if self._next_at is None:
+                self._next_at = now + period
+            else:
+                remain = self._next_at - now
+                if remain > 0:
+                    time.sleep(remain)
+                    self._next_at += period
+                else:
+                    self._next_at = now + period      # 밀렸으면 따라잡지 않는다
         return self._sensor(self.world.render(self._seq))
 
     def _sensor(self, frame: np.ndarray) -> np.ndarray:

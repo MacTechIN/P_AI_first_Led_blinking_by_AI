@@ -190,6 +190,8 @@ def main() -> None:
           f"LED {'ROI 안' if args.led_in_roi else 'ROI 밖'}   {args.steps} 스텝")
     if scenario is not None:
         print(f"대본 {scenario.describe()}\n  {scenario.note}")
+    secs = args.steps / (args.fps or 12.0)
+    print(f"\n약 {secs:.0f}초 걸립니다. 중간에 멈추려면 Ctrl+C 를 누르세요.")
     if rig.fault is not None:
         print(f"\n이 장비에는 문제가 하나 있다고 신고됐습니다.\n  {rig.briefing()}\n"
               f"  어느 계층인지, 무엇 때문인지 측정으로 밝히십시오.")
@@ -197,7 +199,14 @@ def main() -> None:
         print("(미리보기 꺼짐)")
     print()
 
+    # 윈도우 기본 콘솔(conhost)은 ANSI 쓰기가 느려, 같은 그림이라도 몇 배
+    # 오래 걸린다. 그래서 윈도우에서는 더 적게·더 작게 그린다.
+    draw_every = 0.18 if sys.platform == "win32" else 0.1
+    preview_cols = 44 if sys.platform == "win32" else 56
+
     results = []
+    last_draw = 0.0
+    stopped = False
     health_error: str | None = None
     rig.source._fps = args.fps
     with rig.source as src:
@@ -221,6 +230,9 @@ def main() -> None:
             except FrameHealthError as e:
                 health_error = str(e)
                 break
+            except KeyboardInterrupt:
+                stopped = True
+                break
             results.append(r)
 
             if save_dir:
@@ -229,10 +241,13 @@ def main() -> None:
                 cv2.imwrite(str(save_dir / f"{i:04d}.png"),
                             cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
 
-            if show:
+            if show and (time.monotonic() - last_draw) >= draw_every:
+                # 윈도우 콘솔은 ANSI 출력이 느리다. 매 프레임 다시 그리면
+                # 24초짜리가 몇 분이 된다. 다시 그리는 횟수를 제한한다.
+                last_draw = time.monotonic()
                 frame = world.render(i)
                 sys.stdout.write("\x1b[H\x1b[J" if i else "")
-                print(preview(frame))
+                print(preview(frame, cols=preview_cols))
                 print(f"\n색지 {card:8s} → {r.features.describe()}")
                 print(f"명령      {r.command.describe()}"
                       f"{'   ← 전송' if r.changed else ''}")
@@ -246,6 +261,9 @@ def main() -> None:
 
     if isinstance(policy, VlmPolicy):
         policy.stop()
+
+    if stopped:
+        print(f"\n\n중단했습니다 ({len(results)} 스텝까지 진행).")
 
     if health_error:
         print(f"\n건전성 검사가 프레임을 막았습니다 ({len(results)} 스텝에서 중단)")
@@ -286,4 +304,9 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        # Ctrl+C 는 오류가 아니다. 역추적을 띄우면 학생이 고장으로 읽는다.
+        print("\n\n중단했습니다.")
+        sys.exit(0)
